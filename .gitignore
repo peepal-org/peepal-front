@@ -41,3 +41,24 @@ app-example
 # generated native folders
 /ios
 /android
+
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.nfs*
+
+# IDEs
+.vscode/
+.idea/
+
+# Tests et coverage
+coverage/
+jest-cache/
+jest-stare/
+
