@@ -1,21 +1,30 @@
+import { MapFilters } from "@/components/map/MapFilters";
+import { MapFloatingButtons } from "@/components/map/MapFloatingButtons";
+import { MapSearchBar } from "@/components/map/MapSearchBar";
+import { ToiletHorizontalList } from "@/components/map/ToiletHorizontalList";
 import { Colors } from "@/constants/Colors";
-import { Shadows } from "@/constants/Shadows";
 import { toilets } from "@/data/toilets";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  FlatList,
-  Image,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import MapView, { Marker } from "react-native-maps";
+import { Shadows } from "@/constants/Shadows";
+import * as Location from "expo-location";
+import MapView, { LatLng, Marker, Region } from "react-native-maps";
+
+const FALLBACK_REGION: Region = {
+  latitude: 48.867, // Paris fallback
+  longitude: 2.363,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05,
+};
 
 export default function MapScreen() {
   const router = useRouter();
@@ -23,21 +32,102 @@ export default function MapScreen() {
   const theme = Colors[colorScheme ?? "light"];
 
   const [filterFree, setFilterFree] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showNearbyList, setShowNearbyList] = useState(true);
 
-  // 🧩 Filter only free toilets when toggle is active
-  const filteredToilets = filterFree ? toilets.filter((t) => t.free) : toilets;
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const mapRef = useRef<MapView | null>(null);
+
+  //  Request for permission + retrieval of position
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+
+        if (status !== "granted") {
+          setLocationError("Localisation désactivée");
+          return;
+        }
+
+        const loc = await Location.getCurrentPositionAsync({
+          //A little more precision
+          accuracy: Location.Accuracy.High,
+        });
+
+        const coords: LatLng = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
+
+        setUserLocation(coords);
+
+        const targetRegion: Region = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        };
+
+        mapRef.current?.animateToRegion(targetRegion, 600);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (e) {
+        setLocationError("Impossible de récupérer la position");
+      }
+    })();
+  }, []);
+
+  //  Refocus the map on the user
+  const recenterOnUser = useCallback(async () => {
+    try {
+      let coords = userLocation;
+
+      if (!coords) {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        coords = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
+        setUserLocation(coords);
+      }
+
+      if (coords) {
+        const targetRegion: Region = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        mapRef.current?.animateToRegion(targetRegion, 600);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      setLocationError("Impossible de recentrer sur votre position");
+    }
+  }, [userLocation]);
+
+  // "Free" filter
+  let filteredToilets = filterFree ? toilets.filter((t) => t.free) : toilets;
+  // search on toilet name for now
+  if (searchQuery.trim().length > 0) {
+    const q = searchQuery.trim().toLowerCase();
+    filteredToilets = filteredToilets.filter((t) =>
+      t.name.toLowerCase().includes(q)
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 🗺️ Map */}
+      {/*Map */}
       <MapView
+        ref={mapRef}
         style={styles.map}
-        initialRegion={{
-          latitude: 48.867,
-          longitude: 2.363,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
+        initialRegion={FALLBACK_REGION}
+        showsUserLocation
+        followsUserLocation={false}
       >
         {filteredToilets.map((toilet) => (
           <Marker
@@ -54,152 +144,76 @@ export default function MapScreen() {
         ))}
       </MapView>
 
-      {/* 🔍 Search bar */}
-      <TextInput
-        placeholder="Search for a location or address"
-        placeholderTextColor={theme.textMuted}
-        style={[
-          styles.searchBar,
-          { backgroundColor: theme.card, color: theme.text },
-        ]}
+      {/*  Search bar */}
+      <MapSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+
+      {/* Filter bar */}
+      <MapFilters
+        filterFree={filterFree}
+        onToggleFree={() => setFilterFree((prev) => !prev)}
       />
 
-      {/* 🧭 Filter bar */}
-      <View style={styles.filterBar}>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filterFree && { backgroundColor: theme.primary },
-          ]}
-          onPress={() => setFilterFree(!filterFree)}
-        >
-          <Text
-            style={[styles.filterText, filterFree && { color: theme.card }]}
-          >
-            Free
-          </Text>
-        </TouchableOpacity>
+      {/* Horizontal list of nearby toilets */}
+      <TouchableOpacity
+        style={[
+          styles.nearbyToggle,
+          { bottom: showNearbyList ? 270 : 40 }, // 270 ≈ maxHeight 260 + marge
+        ]}
+        onPress={() => setShowNearbyList((prev) => !prev)}
+      >
+        <Text style={styles.nearbyToggleText}>
+          {showNearbyList ? "Hide nearby toilets ▾" : "Show nearby toilets ▴"}
+        </Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterText}>PMR</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterText}>Open Now</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 🪞 Horizontal list of nearby toilets */}
-      <View style={styles.cardList}>
-        <FlatList
-          horizontal
-          data={filteredToilets}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.card,
-                Shadows.dp2,
-                { backgroundColor: theme.card },
-              ]}
-              onPress={() => router.push(`/toilet/${item.id}`)}
-            >
-              <Image source={{ uri: item.image }} style={styles.cardImage} />
-              <Text style={[styles.cardTitle, { color: theme.text }]}>
-                {item.name}
-              </Text>
-              <Text
-                style={[
-                  styles.cardSubtitle,
-                  { color: item.free ? theme.success : theme.error },
-                ]}
-              >
-                {item.free ? "Free" : "Payant"}
-              </Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
+      {showNearbyList && (
+        <ToiletHorizontalList
+          toilets={filteredToilets}
+          userLocation={userLocation}
+          onPressToilet={(id) => router.push(`/toilet/${id}`)}
         />
-      </View>
+      )}
 
-      {/* 📍 Floating buttons */}
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          Shadows.dp4,
-          { bottom: 80, backgroundColor: theme.card },
-        ]}
-      >
-        <Text style={{ fontSize: 18 }}>📍</Text>
-      </TouchableOpacity>
+      {/* Recenter on user & contribute */}
+      <MapFloatingButtons
+        onRecenter={recenterOnUser}
+        onAddToilet={() => router.push("/contribute")}
+      />
 
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          Shadows.dp4,
-          { bottom: 20, backgroundColor: theme.accent },
-        ]}
-      >
-        <Text style={{ fontSize: 22 }}>＋</Text>
-      </TouchableOpacity>
+      {locationError && (
+        <View style={styles.locationBanner}>
+          <Text style={{ color: theme.text }}>{locationError}</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  map: { flex: 1 },
+  map: StyleSheet.absoluteFillObject,
 
-  searchBar: {
+  locationBanner: {
     position: "absolute",
-    top: 40,
-    left: 20,
-    right: 20,
-    borderRadius: 10,
-    padding: 10,
-  },
-
-  filterBar: {
-    position: "absolute",
-    top: 100,
-    flexDirection: "row",
-    left: 20,
-    right: 20,
-    justifyContent: "space-around",
-  },
-  filterButton: {
-    backgroundColor: "white",
+    top: 10,
+    alignSelf: "center",
     paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  nearbyToggle: {
+    position: "absolute",
+    alignSelf: "center",
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.05)",
     ...Shadows.dp1,
   },
-  filterText: {
-    color: "black",
+  nearbyToggleText: {
+    fontSize: 13,
     fontWeight: "500",
-  },
-
-  cardList: {
-    position: "absolute",
-    bottom: 100,
-  },
-  card: {
-    padding: 10,
-    borderRadius: 12,
-    marginHorizontal: 10,
-    width: 200,
-  },
-  cardImage: { width: "100%", height: 100, borderRadius: 10, marginBottom: 8 },
-  cardTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 4 },
-  cardSubtitle: { fontSize: 14 },
-
-  fab: {
-    position: "absolute",
-    right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: "center",
-    justifyContent: "center",
+    color: "white",
   },
 });
