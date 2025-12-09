@@ -1,6 +1,4 @@
-import { Colors } from "@/constants/Colors";
-import { Shadows } from "@/constants/Shadows";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Image,
   ScrollView,
@@ -10,10 +8,31 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { Colors } from "@/constants/Colors";
+import { Shadows } from "@/constants/Shadows";
+import { User } from "@/models/user";
+import { getUserProfile, logout } from "@/auth/authService";
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
+  const [userProfile, setUserProfile] = useState<User | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+    };
+    loadProfile();
+  }, []);
+
+  if (!userProfile) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ color: theme.textMuted }}>Aucun profil trouvé</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -23,11 +42,11 @@ export default function ProfileScreen() {
       {/* 👤 Profile Header */}
       <View style={styles.header}>
         <Image
-          source={{ uri: "https://i.pravatar.cc/150?img=12" }}
+          source={{ uri: userProfile.photo_url }}
           style={[styles.avatar, Shadows.dp4]}
         />
         <Text style={[styles.username, { color: theme.text }]}>
-          Jean Dupont
+          {userProfile.name}
         </Text>
         <Text style={[styles.subtitle, { color: theme.textMuted }]}>
           Explorateur urbain 🚀
@@ -89,6 +108,10 @@ export default function ProfileScreen() {
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: theme.error }]}
+        onPress={async () => {
+          await logout();
+          setUserProfile(null);
+        }}
       >
         <Text style={styles.buttonText}>Déconnexion</Text>
       </TouchableOpacity>
@@ -102,7 +125,11 @@ const styles = StyleSheet.create({
   avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 10 },
   username: { fontSize: 22, fontWeight: "bold" },
   subtitle: { fontSize: 14 },
-
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   stats: {
     flexDirection: "row",
     justifyContent: "space-around",

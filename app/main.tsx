@@ -7,7 +7,7 @@ export default function LoginScreen() {
   // 🔹 Handles user navigation to the main app (tabs group)
   // Use the real logic later
   const handleLogin = () => {
-    router.replace("/(tabs)/map");
+    router.replace("/auth/login");
   };
 
   return (
