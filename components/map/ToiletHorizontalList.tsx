@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/Colors";
 import { Shadows } from "@/constants/Shadows";
+import { Toilet } from "@/types/Toilet";
 import React from "react";
 import {
   FlatList,
@@ -10,17 +11,6 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-
-type Toilet = {
-  id: string;
-  name: string;
-  image: string;
-  free: boolean;
-  latitude: number;
-  longitude: number;
-  accessible: boolean;
-  isOpen?: boolean;
-};
 
 type Props = {
   toilets: Toilet[];
@@ -88,7 +78,7 @@ export function ToiletHorizontalList({
     return null;
   }
 
-  // 🔽 Sort toilets by distance when user location is available (no hook)
+  // Sort toilets by distance when user location is available (no hook)
   const sortedToilets = !userLocation
     ? toilets
     : [...toilets].sort((a, b) => {

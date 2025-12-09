@@ -33,7 +33,7 @@ export function MapFilters({
 
   return (
     <View style={[styles.filterBar, { top: insets.top + 64 }]}>
-      {/* Gratuit */}
+      {/* Free */}
       <TouchableOpacity
         style={[
           styles.filterButton,
@@ -81,7 +81,7 @@ export function MapFilters({
         </Text>
       </TouchableOpacity>
 
-      {/* Ouvert maintenant */}
+      {/* Open now */}
       <TouchableOpacity
         style={[
           styles.filterButton,

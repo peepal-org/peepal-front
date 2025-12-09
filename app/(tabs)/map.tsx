@@ -2,145 +2,40 @@ import { MapFilters } from "@/components/map/MapFilters";
 import { MapFloatingButtons } from "@/components/map/MapFloatingButtons";
 import { MapSearchBar } from "@/components/map/MapSearchBar";
 import { ToiletHorizontalList } from "@/components/map/ToiletHorizontalList";
-import { Colors } from "@/constants/Colors";
-import { toilets } from "@/data/toilets";
-import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  View,
-} from "react-native";
+import { ToiletMarker } from "@/components/map/ToiletMarker";
+import { Shadows } from "@/constants/Shadows";
+import { useMapScreenViewModel } from "@/features/map/useMapScreenViewModel";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import MapView from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Shadows } from "@/constants/Shadows";
-import * as Location from "expo-location";
-import MapView, { LatLng, Marker, Region } from "react-native-maps";
-
-const FALLBACK_REGION: Region = {
-  latitude: 48.867, // Paris fallback
-  longitude: 2.363,
-  latitudeDelta: 0.05,
-  longitudeDelta: 0.05,
-};
-
 export default function MapScreen() {
-  const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
-
-  const [filterFree, setFilterFree] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showNearbyList, setShowNearbyList] = useState(true);
-  const [filterAccessible, setFilterAccessible] = useState(false);
-  const [filterOpenNow, setFilterOpenNow] = useState(false);
-
-  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-
-  const mapRef = useRef<MapView | null>(null);
-
-  //  Request for permission + retrieval of position
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-
-        if (status !== "granted") {
-          setLocationError("Localisation désactivée");
-          return;
-        }
-
-        const loc = await Location.getCurrentPositionAsync({
-          //A little more precision
-          accuracy: Location.Accuracy.High,
-        });
-
-        const coords: LatLng = {
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        };
-
-        setUserLocation(coords);
-
-        const targetRegion: Region = {
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        };
-
-        mapRef.current?.animateToRegion(targetRegion, 600);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
-        setLocationError("Impossible de récupérer la position");
-      }
-    })();
-  }, []);
-
-  //  Refocus the map on the user
-  const recenterOnUser = useCallback(async () => {
-    try {
-      let coords = userLocation;
-
-      if (!coords) {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        coords = {
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        };
-        setUserLocation(coords);
-      }
-
-      if (coords) {
-        const targetRegion: Region = {
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        };
-        mapRef.current?.animateToRegion(targetRegion, 600);
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
-      setLocationError("Impossible de recentrer sur votre position");
-    }
-  }, [userLocation]);
-
-  let filteredToilets = toilets;
-
-  // Filter "free"
-  if (filterFree) {
-    filteredToilets = filteredToilets.filter((t) => t.free);
-  }
-
-  // Accesibility filter
-  if (filterAccessible) {
-    filteredToilets = filteredToilets.filter((t) => t.accessible);
-  }
-
-  // Filter "open now"
-  if (filterOpenNow) {
-    filteredToilets = filteredToilets.filter(
-      (t: any) => (t as any).isOpen ?? true
-    );
-  }
-
-  // Search by name
-  if (searchQuery.trim().length > 0) {
-    const q = searchQuery.trim().toLowerCase();
-    filteredToilets = filteredToilets.filter((t) =>
-      t.name.toLowerCase().includes(q)
-    );
-  }
+  const {
+    theme,
+    filterFree,
+    setFilterFree,
+    filterAccessible,
+    setFilterAccessible,
+    filterOpenNow,
+    setFilterOpenNow,
+    searchQuery,
+    setSearchQuery,
+    showNearbyList,
+    setShowNearbyList,
+    filteredToilets,
+    userLocation,
+    locationError,
+    recenterOnUser,
+    handlePressToilet,
+    goToContribute,
+    mapRef,
+    FALLBACK_REGION,
+  } = useMapScreenViewModel();
 
   return (
     <SafeAreaView style={styles.container}>
-      {/*Map */}
+      {/*  Map */}
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -149,24 +44,19 @@ export default function MapScreen() {
         followsUserLocation={false}
       >
         {filteredToilets.map((toilet) => (
-          <Marker
+          <ToiletMarker
             key={toilet.id}
-            coordinate={{
-              latitude: toilet.latitude,
-              longitude: toilet.longitude,
-            }}
-            title={toilet.name}
-            description={toilet.free ? "Gratuit" : "Payant"}
-            onPress={() => router.push(`/toilet/${toilet.id}`)}
-            pinColor={theme.primary}
+            toilet={toilet}
+            theme={theme}
+            onPress={() => handlePressToilet(toilet.id)}
           />
         ))}
       </MapView>
 
-      {/*  Search bar */}
+      {/* Search Bar */}
       <MapSearchBar value={searchQuery} onChangeText={setSearchQuery} />
 
-      {/* Filter bar */}
+      {/* Filters */}
       <MapFilters
         filterFree={filterFree}
         filterAccessible={filterAccessible}
@@ -176,12 +66,9 @@ export default function MapScreen() {
         onToggleOpenNow={() => setFilterOpenNow((prev) => !prev)}
       />
 
-      {/* Horizontal list of nearby toilets */}
+      {/* Show/Hide nearby toilets list button */}
       <TouchableOpacity
-        style={[
-          styles.nearbyToggle,
-          { bottom: showNearbyList ? 270 : 40 }, // 270 ≈ maxHeight 260 + marge
-        ]}
+        style={[styles.nearbyToggle, { bottom: showNearbyList ? 270 : 40 }]}
         onPress={() => setShowNearbyList((prev) => !prev)}
       >
         <Text style={styles.nearbyToggleText}>
@@ -195,14 +82,14 @@ export default function MapScreen() {
         <ToiletHorizontalList
           toilets={filteredToilets}
           userLocation={userLocation}
-          onPressToilet={(id) => router.push(`/toilet/${id}`)}
+          onPressToilet={handlePressToilet}
         />
       )}
 
-      {/* Recenter on user & contribute */}
+      {/* Recenter + Add a toilet */}
       <MapFloatingButtons
         onRecenter={recenterOnUser}
-        onAddToilet={() => router.push("/contribute")}
+        onAddToilet={goToContribute}
       />
 
       {locationError && (
@@ -233,7 +120,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "rgba(0,0,0,0.35)",
     ...Shadows.dp1,
   },
   nearbyToggleText: {
