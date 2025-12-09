@@ -34,6 +34,8 @@ export default function MapScreen() {
   const [filterFree, setFilterFree] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNearbyList, setShowNearbyList] = useState(true);
+  const [filterAccessible, setFilterAccessible] = useState(false);
+  const [filterOpenNow, setFilterOpenNow] = useState(false);
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -109,9 +111,26 @@ export default function MapScreen() {
     }
   }, [userLocation]);
 
-  // "Free" filter
-  let filteredToilets = filterFree ? toilets.filter((t) => t.free) : toilets;
-  // search on toilet name for now
+  let filteredToilets = toilets;
+
+  // Filter "free"
+  if (filterFree) {
+    filteredToilets = filteredToilets.filter((t) => t.free);
+  }
+
+  // Accesibility filter
+  if (filterAccessible) {
+    filteredToilets = filteredToilets.filter((t) => t.accessible);
+  }
+
+  // Filter "open now"
+  if (filterOpenNow) {
+    filteredToilets = filteredToilets.filter(
+      (t: any) => (t as any).isOpen ?? true
+    );
+  }
+
+  // Search by name
   if (searchQuery.trim().length > 0) {
     const q = searchQuery.trim().toLowerCase();
     filteredToilets = filteredToilets.filter((t) =>
@@ -150,7 +169,11 @@ export default function MapScreen() {
       {/* Filter bar */}
       <MapFilters
         filterFree={filterFree}
+        filterAccessible={filterAccessible}
+        filterOpenNow={filterOpenNow}
         onToggleFree={() => setFilterFree((prev) => !prev)}
+        onToggleAccessible={() => setFilterAccessible((prev) => !prev)}
+        onToggleOpenNow={() => setFilterOpenNow((prev) => !prev)}
       />
 
       {/* Horizontal list of nearby toilets */}
@@ -162,7 +185,9 @@ export default function MapScreen() {
         onPress={() => setShowNearbyList((prev) => !prev)}
       >
         <Text style={styles.nearbyToggleText}>
-          {showNearbyList ? "Hide nearby toilets ▾" : "Show nearby toilets ▴"}
+          {showNearbyList
+            ? "Masquer les toilettes proches ▾"
+            : "Afficher les toilettes proches ▴"}
         </Text>
       </TouchableOpacity>
 

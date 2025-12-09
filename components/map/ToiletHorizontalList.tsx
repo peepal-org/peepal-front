@@ -18,6 +18,8 @@ type Toilet = {
   free: boolean;
   latitude: number;
   longitude: number;
+  accessible: boolean;
+  isOpen?: boolean;
 };
 
 type Props = {
@@ -26,24 +28,31 @@ type Props = {
   userLocation: { latitude: number; longitude: number } | null;
 };
 
-// Calculate the distance in km between two points
+// Calculate the distance in km between two GPS points
+// using the Haversine formula (distance on a sphere)
 function getDistanceKm(
   from: { latitude: number; longitude: number },
   to: { latitude: number; longitude: number }
 ): number {
+  // R = average radius of the Earth in kilometers.
   const R = 6371;
+  // difference in radians
+  // conversion degrees in radians
   const dLat = ((to.latitude - from.latitude) * Math.PI) / 180;
   const dLon = ((to.longitude - from.longitude) * Math.PI) / 180;
 
   const lat1 = (from.latitude * Math.PI) / 180;
   const lat2 = (to.latitude * Math.PI) / 180;
 
+  // Haversine formula
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
 
+  // Calculate the central angle between two points
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
+  // convert the angle to distance
   return R * c;
 }
 
@@ -79,10 +88,26 @@ export function ToiletHorizontalList({
     return null;
   }
 
+  // 🔽 Sort toilets by distance when user location is available (no hook)
+  const sortedToilets = !userLocation
+    ? toilets
+    : [...toilets].sort((a, b) => {
+        const distA = getDistanceKm(userLocation, {
+          latitude: a.latitude,
+          longitude: a.longitude,
+        });
+        const distB = getDistanceKm(userLocation, {
+          latitude: b.latitude,
+          longitude: b.longitude,
+        });
+
+        return distA - distB; // closest first
+      });
+
   return (
     <View style={styles.cardList}>
       <FlatList
-        data={toilets}
+        data={sortedToilets}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
@@ -100,9 +125,15 @@ export function ToiletHorizontalList({
             >
               <Image source={{ uri: item.image }} style={styles.cardImage} />
               <View style={styles.cardTextContainer}>
-                <Text style={[styles.cardTitle, { color: theme.text }]}>
-                  {item.name}
-                </Text>
+                <View style={styles.titleRow}>
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>
+                    {item.name}
+                  </Text>
+
+                  {item.accessible && (
+                    <Text style={styles.accessibleIcon}>♿</Text>
+                  )}
+                </View>
 
                 <View style={styles.cardMetaRow}>
                   <Text
@@ -123,6 +154,14 @@ export function ToiletHorizontalList({
                       · {distanceLabel}
                     </Text>
                   )}
+                  <Text
+                    style={[
+                      styles.cardSubtitle,
+                      { color: item.isOpen ? theme.success : theme.error },
+                    ]}
+                  >
+                    {item.isOpen ? "Ouvert" : "Fermé"}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -176,5 +215,14 @@ const styles = StyleSheet.create({
   },
   cardDistance: {
     fontSize: 13,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  accessibleIcon: {
+    fontSize: 16,
+    color: "#3BAF74",
   },
 });

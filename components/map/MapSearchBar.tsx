@@ -15,7 +15,7 @@ export function MapSearchBar({ value, onChangeText }: MapSearchBarProps) {
 
   return (
     <TextInput
-      placeholder="Search for a location or address"
+      placeholder="Rechercher une adresse ou un lieu"
       placeholderTextColor={theme.textMuted}
       value={value}
       onChangeText={onChangeText}
