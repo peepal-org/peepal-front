@@ -5,6 +5,7 @@ import { ToiletHorizontalList } from "@/components/map/ToiletHorizontalList";
 import { ToiletMarker } from "@/components/map/ToiletMarker";
 import { Shadows } from "@/constants/Shadows";
 import { useMapScreenViewModel } from "@/features/map/useMapScreenViewModel";
+import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MapView from "react-native-maps";
@@ -32,6 +33,7 @@ export default function MapScreen() {
     mapRef,
     FALLBACK_REGION,
   } = useMapScreenViewModel();
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -90,6 +92,7 @@ export default function MapScreen() {
       <MapFloatingButtons
         onRecenter={recenterOnUser}
         onAddToilet={goToContribute}
+        onOpenList={() => router.push("/toilet/list")}
       />
 
       {locationError && (
@@ -127,5 +130,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: "white",
+  },
+  listButton: {
+    position: "absolute",
+    top: 10,
+    right: 16,
+    zIndex: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  listButtonText: {
+    color: "white",
+    fontSize: 13,
+    fontWeight: "500",
   },
 });

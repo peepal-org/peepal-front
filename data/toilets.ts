@@ -1,6 +1,6 @@
 import { Toilet } from "@/types/Toilet";
 
-const DEFAULT_TOILET_IMAGE =
+export const DEFAULT_TOILET_IMAGE =
   "https://cdn.pixabay.com/photo/2015/11/08/11/11/wc-1033443_1280.jpg";
 
 export const toilets: Toilet[] = [
