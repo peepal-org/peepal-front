@@ -1,10 +1,6 @@
 import type { Comment } from "@/types/Comment";
 
-export function getCommentsForToilet(toiletId: string): Comment[] {
-  return comments.filter((c) => c.toiletId === toiletId);
-}
-
-export const comments: Comment[] = [
+let comments: Comment[] = [
   {
     id: "1",
     toiletId: "1",
@@ -35,3 +31,28 @@ export const comments: Comment[] = [
     dateLabel: "Il y a 3 jours",
   },
 ];
+
+export function getCommentsForToilet(toiletId: string): Comment[] {
+  return comments.filter((c) => c.toiletId === toiletId);
+}
+
+export function addCommentForToilet(params: {
+  toiletId: string;
+  userId: string;
+  rating: number;
+  content: string;
+}): Comment {
+  const now = new Date();
+  const newComment: Comment = {
+    id: String(comments.length + 1),
+    toiletId: params.toiletId,
+    userId: params.userId,
+    rating: params.rating,
+    content: params.content,
+    createdAt: now.toISOString(),
+    dateLabel: "À l’instant",
+  };
+
+  comments = [newComment, ...comments];
+  return newComment;
+}

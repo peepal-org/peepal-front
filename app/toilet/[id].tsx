@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { getCommentsForToilet } from "@/data/comments";
 import { DEFAULT_TOILET_IMAGE, toilets } from "@/data/toilets";
+import { getUserById } from "@/data/users";
 import type { Comment } from "@/types/Comment";
 import type { Toilet } from "@/types/Toilet";
 import { getAddressFromCoords } from "@/utils/geocoding";
@@ -257,49 +258,64 @@ export default function ToiletDetailsScreen() {
               </View>
 
               {/* Liste des avis */}
-              {toiletComments.map((review) => (
-                <View key={review.id} style={styles.reviewCard}>
-                  <View style={styles.reviewHeaderRow}>
-                    <View style={styles.reviewAvatar}>
-                      <Text style={styles.reviewAvatarEmoji}>🙂</Text>
-                    </View>
+              {toiletComments.map((review) => {
+                const user = getUserById(review.userId);
 
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[styles.reviewAuthor, { color: theme.text }]}
-                      >
-                        {/* plus tard: nom réel via userId */}
-                        {review.userId}
-                      </Text>
-                      <Text style={{ color: theme.textMuted, fontSize: 12 }}>
-                        {review.dateLabel ?? "Date inconnue"}
-                      </Text>
-                    </View>
-
-                    <View style={{ flexDirection: "row" }}>
-                      {Array.from({ length: 5 }).map((_, index) => {
-                        const starValue = index + 1;
-                        const filled = starValue <= review.rating;
-                        return (
-                          <Text
-                            key={starValue}
-                            style={[
-                              styles.starSmall,
-                              { color: filled ? "#FBBF24" : theme.textMuted },
-                            ]}
-                          >
-                            {filled ? "★" : "☆"}
+                return (
+                  <View key={review.id} style={styles.reviewCard}>
+                    <View style={styles.reviewHeaderRow}>
+                      {/* Avatar */}
+                      <View style={styles.reviewAvatar}>
+                        {user?.photoUrl ? (
+                          <Image
+                            source={{ uri: user.photoUrl }}
+                            style={styles.reviewAvatarImage}
+                          />
+                        ) : (
+                          <Text style={styles.reviewAvatarEmoji}>
+                            {user?.name?.[0]?.toUpperCase() ?? "🙂"}
                           </Text>
-                        );
-                      })}
-                    </View>
-                  </View>
+                        )}
+                      </View>
 
-                  <Text style={[styles.reviewText, { color: theme.text }]}>
-                    {review.content}
-                  </Text>
-                </View>
-              ))}
+                      {/* Nom + date */}
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[styles.reviewAuthor, { color: theme.text }]}
+                        >
+                          {user?.name ?? "Utilisateur·rice Peepal"}
+                        </Text>
+                        <Text style={{ color: theme.textMuted, fontSize: 12 }}>
+                          {review.dateLabel ?? "Date inconnue"}
+                        </Text>
+                      </View>
+
+                      {/* Étoiles */}
+                      <View style={{ flexDirection: "row" }}>
+                        {Array.from({ length: 5 }).map((_, index) => {
+                          const starValue = index + 1;
+                          const filled = starValue <= review.rating;
+                          return (
+                            <Text
+                              key={starValue}
+                              style={[
+                                styles.starSmall,
+                                { color: filled ? "#FBBF24" : theme.textMuted },
+                              ]}
+                            >
+                              {filled ? "★" : "☆"}
+                            </Text>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    <Text style={[styles.reviewText, { color: theme.text }]}>
+                      {review.content}
+                    </Text>
+                  </View>
+                );
+              })}
             </>
           )}
         </View>
@@ -465,18 +481,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  reviewAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.04)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 8,
-  },
-  reviewAvatarEmoji: {
-    fontSize: 20,
-  },
   reviewAuthor: {
     fontSize: 14,
     fontWeight: "600",
@@ -487,5 +491,22 @@ const styles = StyleSheet.create({
   reviewText: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  reviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.04)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  reviewAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  reviewAvatarEmoji: {
+    fontSize: 20,
   },
 });
