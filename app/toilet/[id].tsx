@@ -1,5 +1,7 @@
 import { Colors } from "@/constants/Colors";
+import { getCommentsForToilet } from "@/data/comments";
 import { DEFAULT_TOILET_IMAGE, toilets } from "@/data/toilets";
+import type { Comment } from "@/types/Comment";
 import type { Toilet } from "@/types/Toilet";
 import { getAddressFromCoords } from "@/utils/geocoding";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,6 +9,8 @@ import React, { useEffect, useState } from "react";
 
 import {
   Image,
+  Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +20,23 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+function openInExternalMaps(toilet: Toilet) {
+  const lat = toilet.latitude;
+  const lon = toilet.longitude;
+  const label = encodeURIComponent(toilet.name);
+
+  // iOS → Apple Plans
+  if (Platform.OS === "ios") {
+    const url = `http://maps.apple.com/?ll=${lat},${lon}&q=${label}`;
+    Linking.openURL(url);
+    return;
+  }
+
+  // Android → geo: (Google Maps ou autre app de cartes)
+  const url = `geo:${lat},${lon}?q=${lat},${lon}(${label})`;
+  Linking.openURL(url);
+}
+
 export default function ToiletDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -24,6 +45,15 @@ export default function ToiletDetailsScreen() {
 
   const toilet: Toilet | undefined = toilets.find((t) => t.id === id);
   const [address, setAddress] = useState<string>("Chargement de l'adresse…");
+
+  const toiletId = String(id);
+  const toiletComments: Comment[] = getCommentsForToilet(toiletId);
+
+  const ratingCount = toiletComments.length;
+  const averageRating =
+    ratingCount === 0
+      ? null
+      : toiletComments.reduce((sum, c) => sum + c.rating, 0) / ratingCount;
 
   // Retrieve the address from the coordinates
   useEffect(() => {
@@ -71,7 +101,7 @@ export default function ToiletDetailsScreen() {
     );
   }
 
-  // TODO: plus tard → utiliser de vraies données (adresse, horaires, statut, etc.)
+  // TODO: use real data
   const isOpen = toilet.isOpen ?? true;
   const hoursLabel = "8h00 - 22h00";
   const accessibilityLabel = toilet.accessible
@@ -107,16 +137,26 @@ export default function ToiletDetailsScreen() {
           style={styles.image}
         />
 
-        {/* name & adress */}
+        {/* name & address + "Y aller" compact */}
         <View style={styles.mainInfo}>
           <Text style={[styles.toiletName, { color: theme.text }]}>
             {toilet.name}
           </Text>
+
           <Text style={[styles.toiletAddress, { color: theme.textMuted }]}>
-            {/* placeholder pour l’instant */}
             {address}
           </Text>
+
+          <TouchableOpacity
+            style={[styles.goButton, { backgroundColor: theme.primary }]}
+            onPress={() => openInExternalMaps(toilet)}
+          >
+            <Text style={[styles.goButtonText, { color: theme.card }]}>
+              Y aller 🧭
+            </Text>
+          </TouchableOpacity>
         </View>
+
         {/* LIGNE : HORAIRES / STATUT / ACCESSIBILITÉ */}
         <View style={[styles.infoRow, { borderColor: theme.border }]}>
           <View style={styles.infoColumn}>
@@ -152,15 +192,116 @@ export default function ToiletDetailsScreen() {
           </View>
         </View>
 
-        {/* Comment section */}
+        {/* Avis & commentaires */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Avis & commentaires
-          </Text>
-          <Text style={{ color: theme.textMuted, fontSize: 14 }}>
-            Les avis arrivent bientôt. Vous pourrez bientôt noter la propreté,
-            l’accessibilité et partager votre expérience.
-          </Text>
+          {/* Titre + bouton "Noter" */}
+          <View style={styles.ratingsHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Avis & commentaires
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => router.push(`/toilet/${toilet.id}/rate`)}
+              style={styles.rateButton}
+            >
+              <Text style={[styles.rateButtonText, { color: theme.primary }]}>
+                Noter ces toilettes
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* SI AUCUN AVIS */}
+          {ratingCount === 0 && (
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: theme.textMuted, fontSize: 14 }}>
+                Pas encore d’avis pour ces toilettes.
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 14 }}>
+                Sois le·la premier·ère à partager ton expérience !
+              </Text>
+            </View>
+          )}
+
+          {/* SI AU MOINS 1 AVIS */}
+          {ratingCount > 0 && (
+            <>
+              {/* Résumé note */}
+              <View style={styles.ratingSummaryRow}>
+                <View style={styles.ratingScoreColumn}>
+                  <Text style={[styles.ratingAverage, { color: theme.text }]}>
+                    {averageRating!.toFixed(1)}
+                  </Text>
+                  <View className="starsRow" style={styles.starsRow}>
+                    {Array.from({ length: 5 }).map((_, index) => {
+                      const starValue = index + 1;
+                      const filled =
+                        averageRating !== null &&
+                        starValue <= Math.round(averageRating);
+                      return (
+                        <Text
+                          key={starValue}
+                          style={[
+                            styles.star,
+                            { color: filled ? "#FBBF24" : theme.textMuted },
+                          ]}
+                        >
+                          {filled ? "★" : "☆"}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                  <Text style={{ color: theme.textMuted, fontSize: 13 }}>
+                    {ratingCount} avis
+                  </Text>
+                </View>
+              </View>
+
+              {/* Liste des avis */}
+              {toiletComments.map((review) => (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeaderRow}>
+                    <View style={styles.reviewAvatar}>
+                      <Text style={styles.reviewAvatarEmoji}>🙂</Text>
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[styles.reviewAuthor, { color: theme.text }]}
+                      >
+                        {/* plus tard: nom réel via userId */}
+                        {review.userId}
+                      </Text>
+                      <Text style={{ color: theme.textMuted, fontSize: 12 }}>
+                        {review.dateLabel ?? "Date inconnue"}
+                      </Text>
+                    </View>
+
+                    <View style={{ flexDirection: "row" }}>
+                      {Array.from({ length: 5 }).map((_, index) => {
+                        const starValue = index + 1;
+                        const filled = starValue <= review.rating;
+                        return (
+                          <Text
+                            key={starValue}
+                            style={[
+                              styles.starSmall,
+                              { color: filled ? "#FBBF24" : theme.textMuted },
+                            ]}
+                          >
+                            {filled ? "★" : "☆"}
+                          </Text>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  <Text style={[styles.reviewText, { color: theme.text }]}>
+                    {review.content}
+                  </Text>
+                </View>
+              ))}
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -216,6 +357,18 @@ const styles = StyleSheet.create({
   },
   toiletAddress: {
     fontSize: 14,
+    marginBottom: 8,
+  },
+
+  goButton: {
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+  },
+  goButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 
   // Infos (3 Columns)
@@ -261,5 +414,78 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  ratingsHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  rateButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  rateButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  ratingSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  ratingScoreColumn: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
+  ratingAverage: {
+    fontSize: 28,
+    fontWeight: "700",
+  },
+  starsRow: {
+    flexDirection: "row",
+    marginVertical: 4,
+    gap: 2,
+  },
+  star: {
+    fontSize: 18,
+  },
+
+  reviewCard: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  reviewHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  reviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.04)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  reviewAvatarEmoji: {
+    fontSize: 20,
+  },
+  reviewAuthor: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  starSmall: {
+    fontSize: 14,
+  },
+  reviewText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
