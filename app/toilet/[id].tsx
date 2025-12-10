@@ -1,8 +1,10 @@
 import { Colors } from "@/constants/Colors";
 import { DEFAULT_TOILET_IMAGE, toilets } from "@/data/toilets";
 import type { Toilet } from "@/types/Toilet";
+import { getAddressFromCoords } from "@/utils/geocoding";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
+
 import {
   Image,
   ScrollView,
@@ -21,6 +23,28 @@ export default function ToiletDetailsScreen() {
   const theme = Colors[colorScheme ?? "light"];
 
   const toilet: Toilet | undefined = toilets.find((t) => t.id === id);
+  const [address, setAddress] = useState<string>("Chargement de l'adresse…");
+
+  // Retrieve the address from the coordinates
+  useEffect(() => {
+    if (!toilet) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const addr = await getAddressFromCoords(
+        toilet.latitude,
+        toilet.longitude
+      );
+      if (!cancelled) {
+        setAddress(addr);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [toilet?.latitude, toilet?.longitude, toilet]);
 
   if (!toilet) {
     return (
@@ -51,7 +75,7 @@ export default function ToiletDetailsScreen() {
   const isOpen = toilet.isOpen ?? true;
   const hoursLabel = "8h00 - 22h00";
   const accessibilityLabel = toilet.accessible
-    ? "Accessible fauteuil roulant"
+    ? "Accessible UFR"
     : "Non accessible";
 
   return (
@@ -72,7 +96,7 @@ export default function ToiletDetailsScreen() {
           Infos des toilettes
         </Text>
 
-        {/* little "spacer" to cener te title */}
+        {/* little "spacer" to center te title */}
         <View style={styles.headerSpacer} />
       </View>
 
@@ -90,10 +114,9 @@ export default function ToiletDetailsScreen() {
           </Text>
           <Text style={[styles.toiletAddress, { color: theme.textMuted }]}>
             {/* placeholder pour l’instant */}
-            Paris, France
+            {address}
           </Text>
         </View>
-
         {/* LIGNE : HORAIRES / STATUT / ACCESSIBILITÉ */}
         <View style={[styles.infoRow, { borderColor: theme.border }]}>
           <View style={styles.infoColumn}>
