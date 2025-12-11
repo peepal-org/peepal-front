@@ -76,20 +76,6 @@ export default function ProfileScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: theme.primary }]}
-          onPress={() => router.push("/screens/profileScreens/contributions")}
-        >
-          <Text style={styles.buttonText}>Mes contributions</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: theme.primary }]}
-          onPress={() => router.push("/screens/profileScreens/badges")}
-        >
-          <Text style={styles.buttonText}>Mes badges</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.error }]}
           onPress={() => router.replace("/login")}
         >
@@ -141,12 +127,20 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-evenly",
+    alignItems: "center",
     marginTop: verticalScale(30),
+    paddingHorizontal: scale(20),
   },
-  statBox: { alignItems: "center" },
+  statBox: { 
+    alignItems: "center",
+    flex: 1,
+  },
   statNumber: { fontSize: scale(20), fontWeight: "bold" },
-  statLabel: { fontSize: scale(14) },
+  statLabel: { 
+    fontSize: scale(14),
+    textAlign: "center",
+  },
   section: { marginTop: verticalScale(30), paddingHorizontal: scale(20) },
   sectionTitle: {
     fontSize: scale(18),

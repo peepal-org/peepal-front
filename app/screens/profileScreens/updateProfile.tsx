@@ -42,7 +42,7 @@ export default function UpdateProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <PageHeader title="Profile" onBack={handleBack} />
+      <PageHeader title="Profil" onBack={handleBack} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.avatarSection}>
@@ -55,34 +55,34 @@ export default function UpdateProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>About</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>À propos</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Name</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Nom</Text>
             <TextInput
               style={[styles.input, { 
-                borderColor: theme.border, 
+                borderColor: "#ccc",
                 color: theme.text,
                 backgroundColor: theme.background 
               }]}
               value={name}
               onChangeText={setName}
-              placeholder="Enter your name"
+              placeholder="Entrez votre nom"
               placeholderTextColor={theme.textMuted}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Username</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Nom d'utilisateur</Text>
             <TextInput
               style={[styles.input, { 
-                borderColor: theme.border, 
+                borderColor: "#ccc",
                 color: theme.text,
                 backgroundColor: theme.background 
               }]}
               value={username}
               onChangeText={setUsername}
-              placeholder="Enter your username"
+              placeholder="Entrez votre nom d'utilisateur"
               placeholderTextColor={theme.textMuted}
             />
           </View>
@@ -91,13 +91,13 @@ export default function UpdateProfileScreen() {
             <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
             <TextInput
               style={[styles.input, styles.textArea, { 
-                borderColor: theme.border, 
+                borderColor: "#ccc",
                 color: theme.text,
                 backgroundColor: theme.background 
               }]}
               value={bio}
               onChangeText={setBio}
-              placeholder="Tell us about yourself"
+              placeholder="Parlez-nous de vous"
               placeholderTextColor={theme.textMuted}
               multiline
               numberOfLines={3}
@@ -107,17 +107,17 @@ export default function UpdateProfileScreen() {
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[styles.cancelButton, { borderColor: theme.border }]}
+            style={[styles.cancelButton, { borderColor: "#ccc" }]}
             onPress={handleCancel}
           >
-            <Text style={[styles.cancelButtonText, { color: theme.text }]}>Cancel</Text>
+            <Text style={[styles.cancelButtonText, { color: theme.text }]}>Annuler</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.saveButton, { backgroundColor: theme.primary }]}
             onPress={handleSave}
           >
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={styles.saveButtonText}>Enregistrer</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderRadius: 8,
     paddingHorizontal: 15,
     paddingVertical: 12,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 15,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
