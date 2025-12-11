@@ -48,7 +48,7 @@ export default function ProfileScreen() {
         
         <TouchableOpacity 
           style={styles.editButton}
-          onPress={() => router.push("/screens/profileScreens/updateProfile")}
+          onPress={() => router.push("/profile/updateProfile")}
         >
           <Ionicons name="create-outline" size={24} color={theme.text} />
         </TouchableOpacity>
@@ -79,7 +79,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Contributions</Text>
           <TouchableOpacity
             style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/screens/profileScreens/contributions?tab=ajoute")}
+            onPress={() => router.push("/profile/contributions?tab=ajoute")}
           >
             <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
               <Ionicons name="location-outline" size={20} color={theme.primary} />
@@ -92,7 +92,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/screens/profileScreens/contributions?tab=commentaires")}
+            onPress={() => router.push("/profile/contributions?tab=commentaires")}
           >
             <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
               <Ionicons name="star-outline" size={20} color={theme.primary} />
@@ -105,7 +105,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/screens/profileScreens/contributions?tab=signalements")}
+            onPress={() => router.push("/profile/contributions?tab=signalements")}
           >
             <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
               <Ionicons name="flag-outline" size={20} color={theme.primary} />
@@ -121,7 +121,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Gamification</Text>
           <TouchableOpacity
             style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/screens/profileScreens/badges")}
+            onPress={() => router.push("/profile/badges")}
           >
             <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
               <Ionicons name="ribbon-outline" size={20} color={theme.primary} />
@@ -135,14 +135,14 @@ export default function ProfileScreen() {
 
         {/* <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.error }]}
-          onPress={() => router.push("/screens/profileScreens/contributions")}
+          onPress={() => router.push("/profile/contributions")}
         >
           <Text style={styles.buttonText}>Contributions</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.error }]}
-          onPress={() => router.push("/screens/profileScreens/badges")}
+          onPress={() => router.push("/profile/badges")}
         >
           <Text style={styles.buttonText}>Badges</Text>
         </TouchableOpacity> */}
