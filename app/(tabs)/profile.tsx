@@ -222,7 +222,9 @@ const styles = StyleSheet.create({
     padding: scale(5),
     zIndex: 10,
   },
-  header: { alignItems: "center" },
+  header: { 
+    alignItems: "center",
+    marginBottom: scale(20) },
   avatar: {
     width: scale(100),
     height: scale(100),
@@ -241,7 +243,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-evenly",
     alignItems: "center",
-    marginTop: verticalScale(30),
     paddingHorizontal: scale(20),
   },
   statBox: { 
