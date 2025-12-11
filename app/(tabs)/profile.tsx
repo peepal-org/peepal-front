@@ -90,9 +90,6 @@ export default function ProfileScreen() {
           <Text style={[styles.username, { color: theme.text }]}>
             {userProfile.name}
           </Text>
-          <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-            Explorateur urbain 🚀
-          </Text>
           <Text style={[styles.bio, { color: theme.textMuted }]}>
             Passionné par les espaces publics propres et accessibles à tous
           </Text>
