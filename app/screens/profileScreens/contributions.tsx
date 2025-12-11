@@ -1,15 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { ListItem, Image } from "@rneui/themed";
 import { useNavigation } from "@react-navigation/native";
 import PageHeader from "../../components/header";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 type TabType = "ajoute" | "revues" | "signalements";
 type StatutType = "waiting" | "rejected" | "accepted";
 
 export default function ContributionsScreen() {
   const navigation = useNavigation();
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  
   const data = {
     ajoute: [
       { id: "1", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as StatutType },
@@ -61,6 +64,12 @@ export default function ContributionsScreen() {
 
   const [selected, setSelected] = useState<TabType>("ajoute");
 
+  useEffect(() => {
+    if (params.tab && (params.tab === "ajoute" || params.tab === "revues" || params.tab === "signalements")) {
+      setSelected(params.tab as TabType);
+    }
+  }, [params.tab]);
+
   const handleBack = () => {
     router.replace("/(tabs)/profile");
   };
@@ -81,8 +90,6 @@ export default function ContributionsScreen() {
     }
     return null;
   };
-
-  const router = useRouter();
 
   return (
     <View style={styles.container}>

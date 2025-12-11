@@ -75,6 +75,78 @@ export default function ProfileScreen() {
           ))}
         </View>
 
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Contributions</Text>
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: theme.card }]}
+            onPress={() => router.push("/screens/profileScreens/contributions?tab=ajoute")}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="location-outline" size={20} color={theme.primary} />
+            </View>
+            <View style={styles.listItemContent}>
+              <Text style={[styles.listItemTitle, { color: theme.text }]}>Toilettes ajoutés</Text>
+              <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>10</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: theme.card }]}
+            onPress={() => router.push("/screens/profileScreens/contributions?tab=revues")}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="star-outline" size={20} color={theme.primary} />
+            </View>
+            <View style={styles.listItemContent}>
+              <Text style={[styles.listItemTitle, { color: theme.text }]}>Revues</Text>
+              <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>50</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: theme.card }]}
+            onPress={() => router.push("/screens/profileScreens/contributions?tab=signalements")}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="flag-outline" size={20} color={theme.primary} />
+            </View>
+            <View style={styles.listItemContent}>
+              <Text style={[styles.listItemTitle, { color: theme.text }]}>Signalements</Text>
+              <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>20</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Gamification</Text>
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: theme.card }]}
+            onPress={() => router.push("/screens/profileScreens/badges")}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="ribbon-outline" size={20} color={theme.primary} />
+            </View>
+            <View style={styles.listItemContent}>
+              <Text style={[styles.listItemTitle, { color: theme.text }]}>Badges</Text>
+              <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>Explorateur, Premier Pas ...</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* <TouchableOpacity
+          style={[styles.button, { backgroundColor: theme.error }]}
+          onPress={() => router.push("/screens/profileScreens/contributions")}
+        >
+          <Text style={styles.buttonText}>Contributions</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: theme.error }]}
+          onPress={() => router.push("/screens/profileScreens/badges")}
+        >
+          <Text style={styles.buttonText}>Badges</Text>
+        </TouchableOpacity> */}
+
         <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.error }]}
           onPress={() => router.replace("/login")}
@@ -146,6 +218,33 @@ const styles = StyleSheet.create({
     fontSize: scale(18),
     fontWeight: "bold",
     marginBottom: verticalScale(10),
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: scale(15),
+    borderRadius: scale(12),
+    marginBottom: verticalScale(10),
+    ...Shadows.dp2,
+  },
+  iconContainer: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: scale(15),
+  },
+  listItemContent: {
+    flex: 1,
+  },
+  listItemTitle: {
+    fontSize: scale(16),
+    fontWeight: "600",
+    marginBottom: verticalScale(2),
+  },
+  listItemSubtitle: {
+    fontSize: scale(14),
   },
   button: {
     padding: scale(15),
