@@ -1,6 +1,4 @@
-import { Colors } from "@/constants/Colors";
-import { Shadows } from "@/constants/Shadows";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Image,
   ScrollView,
@@ -11,6 +9,10 @@ import {
   View,
   Dimensions,
 } from "react-native";
+import { Colors } from "@/constants/Colors";
+import { Shadows } from "@/constants/Shadows";
+import { User } from "@/models/user";
+import { getUserProfile, logout } from "@/auth/authService";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -25,6 +27,23 @@ const verticalScale = (size: number) => (height / guidelineBaseHeight) * size;
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
+  const [userProfile, setUserProfile] = useState<User | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+    };
+    loadProfile();
+  }, []);
+
+  if (!userProfile) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ color: theme.textMuted }}>Aucun profil trouvé</Text>
+      </View>
+    );
+  }
   const router = useRouter();
 
   return (
@@ -36,10 +55,10 @@ export default function ProfileScreen() {
       <View style={styles.profileSection}>
         <View style={styles.header}>
           <Image
-            source={{ uri: "https://i.pravatar.cc/150?img=12" }}
+            source={{ uri: userProfile.photo_url }}
             style={[styles.avatar, Shadows.dp4]}
           />
-          <Text style={[styles.username, { color: theme.text }]}>Jean Dupont</Text>
+          <Text style={[styles.username, { color: theme.text }]}>{userProfile.name}</Text>
           <Text style={[styles.subtitle, { color: theme.textMuted }]}>@JeanDupont</Text>
           <Text style={[styles.bio, { color: theme.textMuted }]}>
             Passionné par les espaces publics propres et accessibles à tous
@@ -142,6 +161,10 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.error }]}
+        onPress={async () => {
+          await logout();
+          setUserProfile(null);
+        }}
           onPress={() => router.push("/profile/badges")}
         >
           <Text style={styles.buttonText}>Badges</Text>
@@ -191,7 +214,11 @@ const styles = StyleSheet.create({
   },
   username: { fontSize: scale(22), fontWeight: "bold" },
   subtitle: { fontSize: scale(14), marginBottom: verticalScale(5) },
-  bio: { 
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },  bio: { 
     fontSize: scale(14), 
     textAlign: "center",
     paddingHorizontal: scale(40),
