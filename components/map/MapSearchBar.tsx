@@ -42,7 +42,7 @@ export function MapSearchBar({ value, onChangeText }: MapSearchBarProps) {
         style={[styles.input, { color: theme.text }]}
       />
 
-      {/* ✖ Clear button */}
+      {/* Clear button */}
       {value.length > 0 && (
         <TouchableOpacity onPress={() => onChangeText("")} style={styles.clear}>
           <Text style={styles.clearText}>×</Text>

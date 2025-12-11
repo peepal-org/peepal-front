@@ -11,9 +11,14 @@ import {
 type Props = {
   onRecenter: () => void;
   onAddToilet: () => void;
+  onOpenList?: () => void;
 };
 
-export function MapFloatingButtons({ onRecenter, onAddToilet }: Props) {
+export function MapFloatingButtons({
+  onRecenter,
+  onAddToilet,
+  onOpenList,
+}: Props) {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
 
@@ -25,7 +30,21 @@ export function MapFloatingButtons({ onRecenter, onAddToilet }: Props) {
 
   return (
     <>
-      {/* 🎯 Recenter */}
+      {/* View list */}
+      {onOpenList && (
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            Shadows.dp4,
+            { bottom: 140, backgroundColor: translucentBg },
+          ]}
+          activeOpacity={0.7}
+          onPress={onOpenList}
+        >
+          <Text style={[styles.fabIcon, { color: theme.text }]}>☰</Text>
+        </TouchableOpacity>
+      )}
+      {/* Center */}
       <TouchableOpacity
         style={[
           styles.fab,
