@@ -92,13 +92,13 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/screens/profileScreens/contributions?tab=revues")}
+            onPress={() => router.push("/screens/profileScreens/contributions?tab=commentaires")}
           >
             <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
               <Ionicons name="star-outline" size={20} color={theme.primary} />
             </View>
             <View style={styles.listItemContent}>
-              <Text style={[styles.listItemTitle, { color: theme.text }]}>Revues</Text>
+              <Text style={[styles.listItemTitle, { color: theme.text }]}>Commentaires</Text>
               <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>50</Text>
             </View>
           </TouchableOpacity>

@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import PageHeader from "../../components/header";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
-type TabType = "ajoute" | "revues" | "signalements";
+type TabType = "ajoute" | "commentaires" | "signalements";
 type StatutType = "waiting" | "rejected" | "accepted";
 
 export default function ContributionsScreen() {
@@ -28,7 +28,7 @@ export default function ContributionsScreen() {
       { id: "11", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as StatutType },
       { id: "12", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as StatutType },
     ],
-    revues: [
+    commentaires: [
       { id: "13", title: "Toit lettre", address: "456 Oak Ave", image: "https://picsum.photos/200/200?random=2" },
       { id: "14", title: "Magic Perfect", address: "789 Elm St", image: "https://picsum.photos/200/200?random=3" },
       { id: "15", title: "Shi-hot", address: "321 Maple Dr", image: "https://picsum.photos/200/200?random=4" },
@@ -65,7 +65,7 @@ export default function ContributionsScreen() {
   const [selected, setSelected] = useState<TabType>("ajoute");
 
   useEffect(() => {
-    if (params.tab && (params.tab === "ajoute" || params.tab === "revues" || params.tab === "signalements")) {
+    if (params.tab && (params.tab === "ajoute" || params.tab === "commentaires" || params.tab === "signalements")) {
       setSelected(params.tab as TabType);
     }
   }, [params.tab]);
@@ -81,7 +81,15 @@ export default function ContributionsScreen() {
           <Text style={[styles.bufferText, styles.bufferTextRejected]}>Rejeté</Text>
         </View>
       );
-    } else if (statut === "accepted") {
+    } 
+    else if (statut === "waiting") {
+      return (
+        <View style={[styles.bufferBase, styles.bufferWaiting]}>
+          <Text style={[styles.bufferText, styles.bufferTextWaiting]}>En attente</Text>
+        </View>
+      );
+    }
+    else if (statut === "accepted") {
       return (
         <View style={[styles.bufferBase, styles.bufferAccepted]}>
           <Text style={[styles.bufferText, styles.bufferTextAccepted]}>Accepté</Text>
@@ -105,9 +113,9 @@ export default function ContributionsScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setSelected("revues")}>
-            <Text style={[styles.tab, selected === "revues" && styles.tabSelected]}>
-              Revues
+          <TouchableOpacity onPress={() => setSelected("commentaires")}>
+            <Text style={[styles.tab, selected === "commentaires" && styles.tabSelected]}>
+              Commentaires
             </Text>
           </TouchableOpacity>
 
@@ -169,7 +177,7 @@ const styles = StyleSheet.create({
   },
   item: { paddingVertical: 10 },
   itemWaiting: {
-    opacity: 0.4,
+    opacity: 0.7,
   },
   image: { width: 55, height: 55, borderRadius: 10 },
   title: { fontSize: 16, fontWeight: "600" },
@@ -188,6 +196,9 @@ const styles = StyleSheet.create({
   bufferAccepted: {
     borderColor: "#4CAF50",
   },
+  bufferWaiting: {
+    borderColor: "#323030FF",
+  },
   bufferText: {
     fontSize: 12,
     fontWeight: "600",
@@ -197,5 +208,8 @@ const styles = StyleSheet.create({
   },
   bufferTextAccepted: {
     color: "#4CAF50",
+  },
+  bufferTextWaiting: {
+    color: "#323030ff",
   },
 });

@@ -8,12 +8,15 @@ import {
   Image,
   ScrollView,
   useColorScheme,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Colors } from "@/constants/Colors";
 import { Shadows } from "@/constants/Shadows";
 import PageHeader from "../../components/header";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from 'expo-image-picker';
 
 export default function UpdateProfileScreen() {
   const navigation = useNavigation();
@@ -25,6 +28,7 @@ export default function UpdateProfileScreen() {
   const [bio, setBio] = useState("Passionné par les espaces publics propres et accessibles à tous");
   const [primaryLanguage, setPrimaryLanguage] = useState("French");
   const [secondaryLanguage, setSecondaryLanguage] = useState("English");
+  const [profileImage, setProfileImage] = useState("https://i.pravatar.cc/150?img=12");
 
   const router = useRouter();
 
@@ -33,11 +37,43 @@ export default function UpdateProfileScreen() {
   };
 
   const handleSave = () => {
-    console.log("Saving profile:", { name, username, bio, primaryLanguage, secondaryLanguage });
+    console.log("Saving profile:", { name, username, bio, primaryLanguage, secondaryLanguage, profileImage });
   };
 
   const handleCancel = () => {
     router.replace("/(tabs)/profile");
+  };
+
+  const handleChangePhoto = async () => {
+    try {
+      // Demander la permission d'accès à la galerie
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          "Permission refusée",
+          "Vous devez autoriser l'accès à la galerie pour changer votre photo de profil.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
+      // Ouvrir la galerie
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setProfileImage(result.assets[0].uri);
+        console.log("Nouvelle photo sélectionnée:", result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sélection de l'image:", error);
+      Alert.alert("Erreur", "Une erreur est survenue lors de la sélection de l'image.");
+    }
   };
 
   return (
@@ -46,12 +82,18 @@ export default function UpdateProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.avatarSection}>
-                <Image
-                  source={{ uri: "https://i.pravatar.cc/150?img=12" }}
-                  style={[styles.avatar, Shadows.dp4]}
-                />
-                <Text style={[styles.username, { color: theme.text }]}>Jean Dupont</Text>
-                <Text style={[styles.subtitle, { color: theme.textMuted }]}>@JeanDupont</Text>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={{ uri: profileImage }}
+              style={[styles.avatar, Shadows.dp4]}
+            />
+            <TouchableOpacity
+              style={[styles.photoButton, { backgroundColor: theme.primary }, Shadows.dp2]}
+              onPress={handleChangePhoto}
+            >
+              <Ionicons name="camera" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -126,7 +168,6 @@ export default function UpdateProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-    
   container: {
     flex: 1,
   },
@@ -138,11 +179,26 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     paddingHorizontal: 20,
   },
+  avatarContainer: {
+    position: "relative",
+    marginBottom: 15,
+  },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 15,
+  },
+  photoButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "white",
   },
   username: {
     fontSize: 22,
