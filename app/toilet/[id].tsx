@@ -1,106 +1,323 @@
+import { Colors } from "@/constants/Colors";
+import { getCommentsForToilet } from "@/data/comments";
+import { DEFAULT_TOILET_IMAGE, toilets } from "@/data/toilets";
+import { getUserById } from "@/data/users";
+import type { Comment } from "@/types/Comment";
+import type { Toilet } from "@/types/Toilet";
+import { getAddressFromCoords } from "@/utils/geocoding";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+
 import {
   Image,
+  Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { toilets } from "../../data/toilets";
+
+function openInExternalMaps(toilet: Toilet) {
+  const lat = toilet.latitude;
+  const lon = toilet.longitude;
+  const label = encodeURIComponent(toilet.name);
+
+  // iOS → Apple Plans
+  if (Platform.OS === "ios") {
+    const url = `http://maps.apple.com/?ll=${lat},${lon}&q=${label}`;
+    Linking.openURL(url);
+    return;
+  }
+
+  // Android → geo: (Google Maps ou autre app de cartes)
+  const url = `geo:${lat},${lon}?q=${lat},${lon}(${label})`;
+  Linking.openURL(url);
+}
 
 export default function ToiletDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
 
-  const toilet = toilets.find((t) => t.id === id);
+  const toilet: Toilet | undefined = toilets.find((t) => t.id === id);
+  const [address, setAddress] = useState<string>("Chargement de l'adresse…");
+
+  const toiletId = String(id);
+  const toiletComments: Comment[] = getCommentsForToilet(toiletId);
+
+  const ratingCount = toiletComments.length;
+  const averageRating =
+    ratingCount === 0
+      ? null
+      : toiletComments.reduce((sum, c) => sum + c.rating, 0) / ratingCount;
+
+  // Retrieve the address from the coordinates
+  useEffect(() => {
+    if (!toilet) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const addr = await getAddressFromCoords(
+        toilet.latitude,
+        toilet.longitude
+      );
+      if (!cancelled) {
+        setAddress(addr);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [toilet?.latitude, toilet?.longitude, toilet]);
 
   if (!toilet) {
     return (
-      <SafeAreaView style={styles.center}>
-        <Text style={styles.errorText}>🚽 Toilette introuvable</Text>
+      <SafeAreaView
+        style={[styles.center, { backgroundColor: theme.background }]}
+      >
+        <Text style={[styles.errorText, { color: theme.error }]}>
+          🚽 Toilette introuvable
+        </Text>
         <TouchableOpacity
-          style={styles.secondaryButton}
+          style={[
+            styles.secondaryButton,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
           onPress={() => router.back()}
         >
-          <Text style={styles.secondaryButtonText}>⬅ Retour</Text>
+          <Text
+            style={[styles.secondaryButtonText, { color: theme.textMuted }]}
+          >
+            ⬅ Retour
+          </Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
+  // TODO: use real data
+  const isOpen = toilet.isOpen ?? true;
+  const hoursLabel = "8h00 - 22h00";
+  const accessibilityLabel = toilet.accessible
+    ? "Accessible UFR"
+    : "Non accessible";
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
+      {/* HEADER */}
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.headerBack}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={[styles.headerBackIcon, { color: theme.text }]}>←</Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Infos des toilettes
+        </Text>
+
+        {/* little "spacer" to center te title */}
+        <View style={styles.headerSpacer} />
+      </View>
+
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        {/* Image principale avec overlay */}
-        <View style={styles.imageWrapper}>
-          <Image source={{ uri: toilet.image }} style={styles.image} />
-          <View style={styles.overlay}>
-            <Text style={styles.overlayTitle}>{toilet.name}</Text>
-          </View>
-        </View>
+        {/* Image */}
+        <Image
+          source={{ uri: toilet.image ?? DEFAULT_TOILET_IMAGE }}
+          style={styles.image}
+        />
 
-        {/* Infos principales */}
-        <View style={styles.infoRow}>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: toilet.free ? "#4CAF50" : "#E53935" },
-            ]}
-          >
-            <Text style={styles.badgeText}>
-              {toilet.free ? "Gratuit" : "Payant"}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: toilet.accessible ? "#2196F3" : "#9E9E9E" },
-            ]}
-          >
-            <Text style={styles.badgeText}>
-              {toilet.accessible ? "Accessible ♿" : "Non accessible 🚫"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Horaires */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🕓 Horaires</Text>
-          <Text>Lundi - Dimanche : 7h00 - 22h00</Text>
-        </View>
-
-        {/* État */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>✨ État</Text>
-          <Text>👍 Propre (dernière mise à jour : 2h)</Text>
-        </View>
-
-        {/* Commentaires */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💬 Commentaires</Text>
-          <Text style={styles.comment}>
-            - Très pratique près du métro République
+        {/* name & address + "Y aller" compact */}
+        <View style={styles.mainInfo}>
+          <Text style={[styles.toiletName, { color: theme.text }]}>
+            {toilet.name}
           </Text>
-          <Text style={styles.comment}>- Pas de papier ce matin 😅</Text>
+
+          <Text style={[styles.toiletAddress, { color: theme.textMuted }]}>
+            {address}
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.goButton, { backgroundColor: theme.primary }]}
+            onPress={() => openInExternalMaps(toilet)}
+          >
+            <Text style={[styles.goButtonText, { color: theme.card }]}>
+              Y aller 🧭
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Actions */}
-        <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => alert("Bientôt : ajouter un commentaire ✍️")}
-          >
-            <Text style={styles.buttonText}>Ajouter un commentaire</Text>
-          </TouchableOpacity>
+        {/* LIGNE : HORAIRES / STATUT / ACCESSIBILITÉ */}
+        <View style={[styles.infoRow, { borderColor: theme.border }]}>
+          <View style={styles.infoColumn}>
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>
+              Horaires
+            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {hoursLabel}
+            </Text>
+          </View>
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.secondaryButtonText}>⬅ Retour</Text>
-          </TouchableOpacity>
+          <View style={styles.infoColumn}>
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>
+              Statut
+            </Text>
+            <Text
+              style={[
+                styles.infoValue,
+                { color: isOpen ? theme.success : theme.error },
+              ]}
+            >
+              {isOpen ? "Ouvert" : "Fermé"}
+            </Text>
+          </View>
+
+          <View style={styles.infoColumn}>
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>
+              Accessibilité
+            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {accessibilityLabel}
+            </Text>
+          </View>
+        </View>
+
+        {/* Avis & commentaires */}
+        <View style={styles.section}>
+          {/* Titre + bouton "Noter" */}
+          <View style={styles.ratingsHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Avis & commentaires
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => router.push(`/toilet/${toilet.id}/rate`)}
+              style={styles.rateButton}
+            >
+              <Text style={[styles.rateButtonText, { color: theme.primary }]}>
+                Noter ces toilettes
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* SI AUCUN AVIS */}
+          {ratingCount === 0 && (
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: theme.textMuted, fontSize: 14 }}>
+                Pas encore d’avis pour ces toilettes.
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 14 }}>
+                Sois le·la premier·ère à partager ton expérience !
+              </Text>
+            </View>
+          )}
+
+          {/* SI AU MOINS 1 AVIS */}
+          {ratingCount > 0 && (
+            <>
+              {/* Résumé note */}
+              <View style={styles.ratingSummaryRow}>
+                <View style={styles.ratingScoreColumn}>
+                  <Text style={[styles.ratingAverage, { color: theme.text }]}>
+                    {averageRating!.toFixed(1)}
+                  </Text>
+                  <View className="starsRow" style={styles.starsRow}>
+                    {Array.from({ length: 5 }).map((_, index) => {
+                      const starValue = index + 1;
+                      const filled =
+                        averageRating !== null &&
+                        starValue <= Math.round(averageRating);
+                      return (
+                        <Text
+                          key={starValue}
+                          style={[
+                            styles.star,
+                            { color: filled ? "#FBBF24" : theme.textMuted },
+                          ]}
+                        >
+                          {filled ? "★" : "☆"}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                  <Text style={{ color: theme.textMuted, fontSize: 13 }}>
+                    {ratingCount} avis
+                  </Text>
+                </View>
+              </View>
+
+              {/* Liste des avis */}
+              {toiletComments.map((review) => {
+                const user = getUserById(review.userId);
+
+                return (
+                  <View key={review.id} style={styles.reviewCard}>
+                    <View style={styles.reviewHeaderRow}>
+                      {/* Avatar */}
+                      <View style={styles.reviewAvatar}>
+                        {user?.photoUrl ? (
+                          <Image
+                            source={{ uri: user.photoUrl }}
+                            style={styles.reviewAvatarImage}
+                          />
+                        ) : (
+                          <Text style={styles.reviewAvatarEmoji}>
+                            {user?.name?.[0]?.toUpperCase() ?? "🙂"}
+                          </Text>
+                        )}
+                      </View>
+
+                      {/* Nom + date */}
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[styles.reviewAuthor, { color: theme.text }]}
+                        >
+                          {user?.name ?? "Utilisateur·rice Peepal"}
+                        </Text>
+                        <Text style={{ color: theme.textMuted, fontSize: 12 }}>
+                          {review.dateLabel ?? "Date inconnue"}
+                        </Text>
+                      </View>
+
+                      {/* Étoiles */}
+                      <View style={{ flexDirection: "row" }}>
+                        {Array.from({ length: 5 }).map((_, index) => {
+                          const starValue = index + 1;
+                          const filled = starValue <= review.rating;
+                          return (
+                            <Text
+                              key={starValue}
+                              style={[
+                                styles.starSmall,
+                                { color: filled ? "#FBBF24" : theme.textMuted },
+                              ]}
+                            >
+                              {filled ? "★" : "☆"}
+                            </Text>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    <Text style={[styles.reviewText, { color: theme.text }]}>
+                      {review.content}
+                    </Text>
+                  </View>
+                );
+              })}
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -108,59 +325,188 @@ export default function ToiletDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fafafa" },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  imageWrapper: { position: "relative" },
+  // HEADER
+  header: {
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerBack: {
+    width: 32,
+    alignItems: "flex-start",
+  },
+  headerBackIcon: {
+    fontSize: 20,
+    fontWeight: "500",
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  headerSpacer: {
+    width: 32,
+  },
+
+  // IMAGE
   image: {
     width: "100%",
     height: 220,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
   },
-  overlay: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingVertical: 12,
+
+  // Title & address
+  mainInfo: {
     paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  overlayTitle: { color: "#fff", fontSize: 22, fontWeight: "bold" },
-
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    marginVertical: 16,
+  toiletName: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 4,
   },
-  badge: {
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  badgeText: { color: "#fff", fontWeight: "600" },
-
-  section: { marginHorizontal: 16, marginVertical: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 6 },
-  comment: { marginBottom: 4, color: "#444" },
-
-  buttonsContainer: { marginTop: 12, paddingHorizontal: 16 },
-  button: {
-    padding: 14,
-    backgroundColor: "#007BFF",
-    borderRadius: 8,
-    alignItems: "center",
+  toiletAddress: {
+    fontSize: 14,
     marginBottom: 8,
   },
-  buttonText: { color: "white", fontSize: 16, fontWeight: "600" },
 
-  secondaryButton: {
-    padding: 14,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 8,
-    alignItems: "center",
+  goButton: {
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 999,
   },
-  secondaryButtonText: { color: "#333", fontSize: 16, fontWeight: "600" },
+  goButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
 
-  errorText: { fontSize: 18, color: "#E53935", marginBottom: 12 },
+  // Infos (3 Columns)
+  infoRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginTop: 8,
+    gap: 16,
+  },
+  infoColumn: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  // SECTIONS
+  section: {
+    marginHorizontal: 16,
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  errorText: { fontSize: 18, marginBottom: 12 },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  ratingsHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  rateButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  rateButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  ratingSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  ratingScoreColumn: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
+  ratingAverage: {
+    fontSize: 28,
+    fontWeight: "700",
+  },
+  starsRow: {
+    flexDirection: "row",
+    marginVertical: 4,
+    gap: 2,
+  },
+  star: {
+    fontSize: 18,
+  },
+
+  reviewCard: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  reviewHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  reviewAuthor: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  starSmall: {
+    fontSize: 14,
+  },
+  reviewText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  reviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.04)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  reviewAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  reviewAvatarEmoji: {
+    fontSize: 20,
+  },
 });
