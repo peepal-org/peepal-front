@@ -27,24 +27,53 @@ const verticalScale = (size: number) => (height / guidelineBaseHeight) * size;
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
+  const router = useRouter();
   const [userProfile, setUserProfile] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadProfile = async () => {
-      const profile = await getUserProfile();
-      setUserProfile(profile);
+      try {
+        const profile = await getUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error("Erreur lors du chargement du profil:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     loadProfile();
   }, []);
 
-  if (!userProfile) {
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUserProfile(null);
+      router.replace("/login");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+    }
+  };
+
+  if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={{ color: theme.textMuted }}>Aucun profil trouvé</Text>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: theme.textMuted }}>Chargement...</Text>
+        </View>
       </View>
     );
   }
-  const router = useRouter();
+
+  if (!userProfile) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: theme.textMuted }}>Aucun profil trouvé</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -58,8 +87,12 @@ export default function ProfileScreen() {
             source={{ uri: userProfile.photo_url }}
             style={[styles.avatar, Shadows.dp4]}
           />
-          <Text style={[styles.username, { color: theme.text }]}>{userProfile.name}</Text>
-          <Text style={[styles.subtitle, { color: theme.textMuted }]}>@JeanDupont</Text>
+          <Text style={[styles.username, { color: theme.text }]}>
+            {userProfile.name}
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+            Explorateur urbain 🚀
+          </Text>
           <Text style={[styles.bio, { color: theme.textMuted }]}>
             Passionné par les espaces publics propres et accessibles à tous
           </Text>
@@ -152,27 +185,9 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* <TouchableOpacity
-          style={[styles.button, { backgroundColor: theme.error }]}
-          onPress={() => router.push("/profile/contributions")}
-        >
-          <Text style={styles.buttonText}>Contributions</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.error }]}
-        onPress={async () => {
-          await logout();
-          setUserProfile(null);
-        }}
-          onPress={() => router.push("/profile/badges")}
-        >
-          <Text style={styles.buttonText}>Badges</Text>
-        </TouchableOpacity> */}
-
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: theme.error }]}
-          onPress={() => router.replace("/login")}
+          onPress={handleLogout}
         >
           <Text style={styles.buttonText}>Déconnexion</Text>
         </TouchableOpacity>
@@ -194,6 +209,11 @@ const styles = StyleSheet.create({
     fontSize: scale(18),
     fontWeight: "600",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   profileSection: {
     position: "relative",
     marginTop: verticalScale(20),
@@ -214,11 +234,7 @@ const styles = StyleSheet.create({
   },
   username: { fontSize: scale(22), fontWeight: "bold" },
   subtitle: { fontSize: scale(14), marginBottom: verticalScale(5) },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },  bio: { 
+  bio: { 
     fontSize: scale(14), 
     textAlign: "center",
     paddingHorizontal: scale(40),
