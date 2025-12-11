@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,20 +17,42 @@ import PageHeader from "../../components/header";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
+import { User } from "@/models/user";
+import { getUserProfile } from "@/auth/authService";
 
 export default function UpdateProfileScreen() {
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
+  const router = useRouter();
 
-  const [name, setName] = useState("Jean Dupont");
-  const [username, setUsername] = useState("jean.dupont");
+  const [userProfile, setUserProfile] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [bio, setBio] = useState("Passionné par les espaces publics propres et accessibles à tous");
   const [primaryLanguage, setPrimaryLanguage] = useState("French");
   const [secondaryLanguage, setSecondaryLanguage] = useState("English");
-  const [profileImage, setProfileImage] = useState("https://i.pravatar.cc/150?img=12");
+  const [profileImage, setProfileImage] = useState("");
 
-  const router = useRouter();
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await getUserProfile();
+        setUserProfile(profile);
+        if (profile) {
+          setName(profile.name || "");
+          setProfileImage(profile.photo_url || "");
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement du profil:", error);
+        Alert.alert("Erreur", "Impossible de charger le profil");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, []);
 
   const handleBack = () => {
     router.replace("/(tabs)/profile");
@@ -38,6 +60,9 @@ export default function UpdateProfileScreen() {
 
   const handleSave = () => {
     console.log("Saving profile:", { name, username, bio, primaryLanguage, secondaryLanguage, profileImage });
+    Alert.alert("Succès", "Profil mis à jour avec succès", [
+      { text: "OK", onPress: () => router.replace("/(tabs)/profile") }
+    ]);
   };
 
   const handleCancel = () => {
@@ -46,7 +71,6 @@ export default function UpdateProfileScreen() {
 
   const handleChangePhoto = async () => {
     try {
-      // Demander la permission d'accès à la galerie
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
@@ -58,7 +82,6 @@ export default function UpdateProfileScreen() {
         return;
       }
 
-      // Ouvrir la galerie
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -75,6 +98,28 @@ export default function UpdateProfileScreen() {
       Alert.alert("Erreur", "Une erreur est survenue lors de la sélection de l'image.");
     }
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <PageHeader title="Profil" onBack={handleBack} />
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: theme.textMuted }}>Chargement...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <PageHeader title="Profil" onBack={handleBack} />
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: theme.textMuted }}>Aucun profil trouvé</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -100,7 +145,7 @@ export default function UpdateProfileScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>À propos</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Nom</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Nom d'utilisateur</Text>
             <TextInput
               style={[styles.input, { 
                 borderColor: "#ccc",
@@ -114,7 +159,7 @@ export default function UpdateProfileScreen() {
             />
           </View>
 
-          <View style={styles.inputGroup}>
+          {/* <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.text }]}>Nom d'utilisateur</Text>
             <TextInput
               style={[styles.input, { 
@@ -127,7 +172,7 @@ export default function UpdateProfileScreen() {
               placeholder="Entrez votre nom d'utilisateur"
               placeholderTextColor={theme.textMuted}
             />
-          </View>
+          </View> */}
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
@@ -170,6 +215,11 @@ export default function UpdateProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     paddingBottom: 40,
