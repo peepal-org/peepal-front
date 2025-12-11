@@ -1,205 +1,149 @@
-import { Colors } from "@/constants/Colors";
+import { MapFilters } from "@/components/map/MapFilters";
+import { MapFloatingButtons } from "@/components/map/MapFloatingButtons";
+import { MapSearchBar } from "@/components/map/MapSearchBar";
+import { ToiletHorizontalList } from "@/components/map/ToiletHorizontalList";
+import { ToiletMarker } from "@/components/map/ToiletMarker";
 import { Shadows } from "@/constants/Shadows";
-import { toilets } from "@/data/toilets";
+import { useMapScreenViewModel } from "@/features/map/useMapScreenViewModel";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  useColorScheme,
-  View,
-} from "react-native";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import MapView from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import MapView, { Marker } from "react-native-maps";
-
 export default function MapScreen() {
+  const {
+    theme,
+    filterFree,
+    setFilterFree,
+    filterAccessible,
+    setFilterAccessible,
+    filterOpenNow,
+    setFilterOpenNow,
+    searchQuery,
+    setSearchQuery,
+    showNearbyList,
+    setShowNearbyList,
+    filteredToilets,
+    userLocation,
+    locationError,
+    recenterOnUser,
+    handlePressToilet,
+    goToContribute,
+    mapRef,
+    FALLBACK_REGION,
+  } = useMapScreenViewModel();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
-
-  const [filterFree, setFilterFree] = useState(false);
-
-  // 🧩 Filter only free toilets when toggle is active
-  const filteredToilets = filterFree ? toilets.filter((t) => t.free) : toilets;
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 🗺️ Map */}
+      {/*  Map */}
       <MapView
+        ref={mapRef}
         style={styles.map}
-        initialRegion={{
-          latitude: 48.867,
-          longitude: 2.363,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
+        initialRegion={FALLBACK_REGION}
+        showsUserLocation
+        followsUserLocation={false}
       >
         {filteredToilets.map((toilet) => (
-          <Marker
+          <ToiletMarker
             key={toilet.id}
-            coordinate={{
-              latitude: toilet.latitude,
-              longitude: toilet.longitude,
-            }}
-            title={toilet.name}
-            description={toilet.free ? "Gratuit" : "Payant"}
-            onPress={() => router.push(`/toilet/${toilet.id}`)}
-            pinColor={theme.primary}
+            toilet={toilet}
+            theme={theme}
+            onPress={() => handlePressToilet(toilet.id)}
           />
         ))}
       </MapView>
 
-      {/* 🔍 Search bar */}
-      <TextInput
-        placeholder="Search for a location or address"
-        placeholderTextColor={theme.textMuted}
-        style={[
-          styles.searchBar,
-          { backgroundColor: theme.card, color: theme.text },
-        ]}
+      {/* Search Bar */}
+      <MapSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+
+      {/* Filters */}
+      <MapFilters
+        filterFree={filterFree}
+        filterAccessible={filterAccessible}
+        filterOpenNow={filterOpenNow}
+        onToggleFree={() => setFilterFree((prev) => !prev)}
+        onToggleAccessible={() => setFilterAccessible((prev) => !prev)}
+        onToggleOpenNow={() => setFilterOpenNow((prev) => !prev)}
       />
 
-      {/* 🧭 Filter bar */}
-      <View style={styles.filterBar}>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filterFree && { backgroundColor: theme.primary },
-          ]}
-          onPress={() => setFilterFree(!filterFree)}
-        >
-          <Text
-            style={[styles.filterText, filterFree && { color: theme.card }]}
-          >
-            Free
-          </Text>
-        </TouchableOpacity>
+      {/* Show/Hide nearby toilets list button */}
+      <TouchableOpacity
+        style={[styles.nearbyToggle, { bottom: showNearbyList ? 270 : 40 }]}
+        onPress={() => setShowNearbyList((prev) => !prev)}
+      >
+        <Text style={styles.nearbyToggleText}>
+          {showNearbyList
+            ? "Masquer les toilettes proches ▾"
+            : "Afficher les toilettes proches ▴"}
+        </Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterText}>PMR</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterText}>Open Now</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 🪞 Horizontal list of nearby toilets */}
-      <View style={styles.cardList}>
-        <FlatList
-          horizontal
-          data={filteredToilets}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.card,
-                Shadows.dp2,
-                { backgroundColor: theme.card },
-              ]}
-              onPress={() => router.push(`/toilet/${item.id}`)}
-            >
-              <Image source={{ uri: item.image }} style={styles.cardImage} />
-              <Text style={[styles.cardTitle, { color: theme.text }]}>
-                {item.name}
-              </Text>
-              <Text
-                style={[
-                  styles.cardSubtitle,
-                  { color: item.free ? theme.success : theme.error },
-                ]}
-              >
-                {item.free ? "Free" : "Payant"}
-              </Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
+      {showNearbyList && (
+        <ToiletHorizontalList
+          toilets={filteredToilets}
+          userLocation={userLocation}
+          onPressToilet={handlePressToilet}
         />
-      </View>
+      )}
 
-      {/* 📍 Floating buttons */}
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          Shadows.dp4,
-          { bottom: 80, backgroundColor: theme.card },
-        ]}
-      >
-        <Text style={{ fontSize: 18 }}>📍</Text>
-      </TouchableOpacity>
+      {/* Recenter + Add a toilet */}
+      <MapFloatingButtons
+        onRecenter={recenterOnUser}
+        onAddToilet={goToContribute}
+        onOpenList={() => router.push("/toilet/list")}
+      />
 
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          Shadows.dp4,
-          { bottom: 20, backgroundColor: theme.accent },
-        ]}
-      >
-        <Text style={{ fontSize: 22 }}>＋</Text>
-      </TouchableOpacity>
+      {locationError && (
+        <View style={styles.locationBanner}>
+          <Text style={{ color: theme.text }}>{locationError}</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  map: { flex: 1 },
+  map: StyleSheet.absoluteFillObject,
 
-  searchBar: {
+  locationBanner: {
     position: "absolute",
-    top: 40,
-    left: 20,
-    right: 20,
-    borderRadius: 10,
-    padding: 10,
-  },
-
-  filterBar: {
-    position: "absolute",
-    top: 100,
-    flexDirection: "row",
-    left: 20,
-    right: 20,
-    justifyContent: "space-around",
-  },
-  filterButton: {
-    backgroundColor: "white",
+    top: 10,
+    alignSelf: "center",
     paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  nearbyToggle: {
+    position: "absolute",
+    alignSelf: "center",
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.35)",
     ...Shadows.dp1,
   },
-  filterText: {
-    color: "black",
+  nearbyToggleText: {
+    fontSize: 13,
     fontWeight: "500",
+    color: "white",
   },
-
-  cardList: {
+  listButton: {
     position: "absolute",
-    bottom: 100,
+    top: 10,
+    right: 16,
+    zIndex: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
-  card: {
-    padding: 10,
-    borderRadius: 12,
-    marginHorizontal: 10,
-    width: 200,
-  },
-  cardImage: { width: "100%", height: 100, borderRadius: 10, marginBottom: 8 },
-  cardTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 4 },
-  cardSubtitle: { fontSize: 14 },
-
-  fab: {
-    position: "absolute",
-    right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: "center",
-    justifyContent: "center",
+  listButtonText: {
+    color: "white",
+    fontSize: 13,
+    fontWeight: "500",
   },
 });
