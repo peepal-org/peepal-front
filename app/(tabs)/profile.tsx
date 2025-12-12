@@ -8,6 +8,7 @@ import {
   useColorScheme,
   View,
   Dimensions,
+  FlatList,
 } from "react-native";
 import { Colors } from "@/constants/Colors";
 import { Shadows } from "@/constants/Shadows";
@@ -30,6 +31,40 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const contributionItems = [
+    {
+      id: "toilettes",
+      icon: "location-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Toilettes ajoutés",
+      subtitle: "10",
+      route: "/profile/contributions?tab=ajoute",
+    },
+    {
+      id: "commentaires",
+      icon: "star-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Commentaires",
+      subtitle: "50",
+      route: "/profile/contributions?tab=commentaires",
+    },
+    {
+      id: "signalements",
+      icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Signalements",
+      subtitle: "20",
+      route: "/profile/contributions?tab=signalements",
+    },
+  ];
+
+  const gamificationItems = [
+    {
+      id: "badges",
+      icon: "ribbon-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Badges",
+      subtitle: "Explorateur, Premier Pas ...",
+      route: "/profile/badges",
+    },
+  ];
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -126,60 +161,52 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Contributions</Text>
-          <TouchableOpacity
-            style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/profile/contributions?tab=ajoute")}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
-              <Ionicons name="location-outline" size={20} color={theme.primary} />
-            </View>
-            <View style={styles.listItemContent}>
-              <Text style={[styles.listItemTitle, { color: theme.text }]}>Toilettes ajoutés</Text>
-              <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>10</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/profile/contributions?tab=commentaires")}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
-              <Ionicons name="star-outline" size={20} color={theme.primary} />
-            </View>
-            <View style={styles.listItemContent}>
-              <Text style={[styles.listItemTitle, { color: theme.text }]}>Commentaires</Text>
-              <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>50</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/profile/contributions?tab=signalements")}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
-              <Ionicons name="flag-outline" size={20} color={theme.primary} />
-            </View>
-            <View style={styles.listItemContent}>
-              <Text style={[styles.listItemTitle, { color: theme.text }]}>Signalements</Text>
-              <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>20</Text>
-            </View>
-          </TouchableOpacity>
+          <FlatList
+            data={contributionItems}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.flatList, { backgroundColor: theme.card }]}
+                onPress={() => router.push(item.route as any)}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name={item.icon} size={20} color={theme.primary} />
+                </View>
+                <View style={styles.flatListContent}>
+                  <Text style={[styles.flatListTitle, { color: theme.text }]}>{item.title}</Text>
+                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                    {item.subtitle}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+          />
         </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Gamification</Text>
-          <TouchableOpacity
-            style={[styles.listItem, { backgroundColor: theme.card }]}
-            onPress={() => router.push("/profile/badges")}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
-              <Ionicons name="ribbon-outline" size={20} color={theme.primary} />
-            </View>
-            <View style={styles.listItemContent}>
-              <Text style={[styles.listItemTitle, { color: theme.text }]}>Badges</Text>
-              <Text style={[styles.listItemSubtitle, { color: theme.textMuted }]}>Explorateur, Premier Pas ...</Text>
-            </View>
-          </TouchableOpacity>
+          <FlatList
+            data={gamificationItems}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.flatList, { backgroundColor: theme.card }]}
+                onPress={() => router.push(item.route as any)}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name={item.icon} size={20} color={theme.primary} />
+                </View>
+                <View style={styles.flatListContent}>
+                  <Text style={[styles.flatListTitle, { color: theme.text }]}>{item.title}</Text>
+                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                    {item.subtitle}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+          />
         </View>
 
         <TouchableOpacity
@@ -260,7 +287,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: verticalScale(10),
   },
-  listItem: {
+  flatList: {
     flexDirection: "row",
     alignItems: "center",
     padding: scale(15),
@@ -276,15 +303,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: scale(15),
   },
-  listItemContent: {
+  flatListContent: {
     flex: 1,
   },
-  listItemTitle: {
+  flatListTitle: {
     fontSize: scale(16),
     fontWeight: "600",
     marginBottom: verticalScale(2),
   },
-  listItemSubtitle: {
+  flatListSubtitle: {
     fontSize: scale(14),
   },
   button: {
