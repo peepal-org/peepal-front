@@ -21,7 +21,6 @@ import { User } from "@/models/user";
 import { getUserProfile } from "@/auth/authService";
 
 export default function UpdateProfileScreen() {
-  const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const router = useRouter();

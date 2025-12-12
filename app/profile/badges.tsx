@@ -7,7 +7,6 @@ import { Badge } from "../../types/Badge";
 
 export default function BadgesScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
 
   const allBadges: Badge[] = [
     { id: "1", name: "Premier Pas", description: "Ajoutez votre première toilette", image: "https://picsum.photos/100/100?random=1", obtained: true },

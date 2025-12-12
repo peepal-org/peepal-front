@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
-import { ListItem, Image } from "@rneui/themed";
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import PageHeader from "../../components/header";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Tab } from "../../types/TabType";
-import { Statut } from "../../types/StatutType";
+import { Tab } from "../../types/Tab";
+import { Statut } from "../../types/Statut";
 
 export default function ContributionsScreen() {
-  const navigation = useNavigation();
   const router = useRouter();
   const params = useLocalSearchParams();
   
@@ -61,6 +59,12 @@ export default function ContributionsScreen() {
     ],
   };
 
+  const tabs = [
+    { id: "ajoute" as Tab, label: "Ajoutés" },
+    { id: "commentaires" as Tab, label: "Commentaires" },
+    { id: "signalements" as Tab, label: "Signalements" },
+  ];
+
   const [selected, setSelected] = useState<Tab>("ajoute");
 
   useEffect(() => {
@@ -74,28 +78,32 @@ export default function ContributionsScreen() {
   };
 
   const renderStatutBuffer = (statut: Statut) => {
-    if (statut === "rejected") {
-      return (
-        <View style={[styles.bufferBase, styles.bufferRejected]}>
-          <Text style={[styles.bufferText, styles.bufferTextRejected]}>Rejeté</Text>
-        </View>
-      );
-    } 
-    else if (statut === "waiting") {
-      return (
-        <View style={[styles.bufferBase, styles.bufferWaiting]}>
-          <Text style={[styles.bufferText, styles.bufferTextWaiting]}>En attente</Text>
-        </View>
-      );
-    }
-    else if (statut === "accepted") {
-      return (
-        <View style={[styles.bufferBase, styles.bufferAccepted]}>
-          <Text style={[styles.bufferText, styles.bufferTextAccepted]}>Accepté</Text>
-        </View>
-      );
-    }
-    return null;
+    const statutConfig = {
+      rejected: {
+        style: styles.bufferRejected,
+        textStyle: styles.bufferTextRejected,
+        label: "Rejeté",
+      },
+      waiting: {
+        style: styles.bufferWaiting,
+        textStyle: styles.bufferTextWaiting,
+        label: "En attente",
+      },
+      accepted: {
+        style: styles.bufferAccepted,
+        textStyle: styles.bufferTextAccepted,
+        label: "Accepté",
+      },
+    };
+
+    const config = statutConfig[statut];
+    if (!config) return null;
+
+    return (
+      <View style={[styles.bufferBase, config.style]}>
+        <Text style={[styles.bufferText, config.textStyle]}>{config.label}</Text>
+      </View>
+    );
   };
 
   return (
@@ -105,44 +113,39 @@ export default function ContributionsScreen() {
       <View style={styles.content}>
         <Text style={styles.header}>Contributions</Text>
 
-        <View style={styles.tabs}>
-          <TouchableOpacity onPress={() => setSelected("ajoute")}>
-            <Text style={[styles.tab, selected === "ajoute" && styles.tabSelected]}>
-              Ajoutés
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setSelected("commentaires")}>
-            <Text style={[styles.tab, selected === "commentaires" && styles.tabSelected]}>
-              Commentaires
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setSelected("signalements")}>
-            <Text style={[styles.tab, selected === "signalements" && styles.tabSelected]}>
-              Signalements
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <FlatList
+          data={tabs}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => setSelected(item.id)}>
+              <Text style={[styles.tab, selected === item.id && styles.tabSelected]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item.id}
+          horizontal
+          scrollEnabled={false}
+          contentContainerStyle={styles.tabs}
+          ItemSeparatorComponent={() => <View style={{ width: 20 }} />}
+        />
 
         <FlatList
           data={data[selected]}
           keyExtractor={(item) => `${selected}-${item.id}`}
           renderItem={({ item }) => (
-            <ListItem 
-              bottomDivider 
-              containerStyle={[
+            <View 
+              style={[
                 styles.item,
-                'statut' in item && item.statut === "waiting" && styles.itemWaiting
+                item.statut === "waiting" && styles.itemWaiting
               ]}
             >
               <Image source={{ uri: item.image }} style={styles.image} />
-              <ListItem.Content>
-                <ListItem.Title style={styles.title}>{item.title}</ListItem.Title>
-                <ListItem.Subtitle style={styles.address}>{item.address}</ListItem.Subtitle>
-              </ListItem.Content>
-              {'statut' in item && renderStatutBuffer(item.statut)}
-            </ListItem>
+              <View style={styles.itemContent}>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.address}>{item.address}</Text>
+              </View>
+              {item.statut && renderStatutBuffer(item.statut)}
+            </View>
           )}
         />
       </View>
@@ -161,10 +164,8 @@ const styles = StyleSheet.create({
   },
   header: { fontSize: 22, fontWeight: "600", marginBottom: 15 },
   tabs: {
-    flexDirection: "row",
     marginBottom: 15,
     justifyContent: "space-between",
-    width: "80%",
   },
   tab: { fontSize: 16, color: "#555" },
   tabSelected: {
@@ -174,13 +175,36 @@ const styles = StyleSheet.create({
     color: "black",
     fontWeight: "600",
   },
-  item: { paddingVertical: 10 },
+  item: { 
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    backgroundColor: "#fff",
+  },
   itemWaiting: {
     opacity: 0.7,
   },
-  image: { width: 55, height: 55, borderRadius: 10 },
-  title: { fontSize: 16, fontWeight: "600" },
-  address: { color: "#888" },
+  image: { 
+    width: 55, 
+    height: 55, 
+    borderRadius: 10,
+    marginRight: 15,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  title: { 
+    fontSize: 16, 
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  address: { 
+    color: "#888",
+    fontSize: 14,
+  },
   bufferBase: {
     paddingHorizontal: 12,
     paddingVertical: 6,
