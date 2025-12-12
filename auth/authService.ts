@@ -4,6 +4,8 @@ import { User } from "@/models/user";
 const API_URL = "http://localhost:3000/";
 //const API_URL = "http://10.149.233.23:3000/";
 
+//API URL POUR ANDROID
+//const API_URL = "http://10.0.2.2:3000/"; 
 const TOKEN_KEY = "token";
 const USER_KEY = "userProfile";
 
