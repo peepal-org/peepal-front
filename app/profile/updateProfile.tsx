@@ -157,21 +157,6 @@ export default function UpdateProfileScreen() {
             />
           </View>
 
-          {/* <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Nom d'utilisateur</Text>
-            <TextInput
-              style={[styles.input, { 
-                borderColor: "#ccc",
-                color: theme.text,
-                backgroundColor: theme.background 
-              }]}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Entrez votre nom d'utilisateur"
-              placeholderTextColor={theme.textMuted}
-            />
-          </View> */}
-
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
             <TextInput
