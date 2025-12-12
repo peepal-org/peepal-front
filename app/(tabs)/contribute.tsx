@@ -1,126 +1,131 @@
+import { Colors } from "@/constants/Colors";
+import { Shadows } from "@/constants/Shadows";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import React from "react";
 import {
-  Alert,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ContributeScreen() {
   const router = useRouter();
-
-  // 🔹 Local state for form inputs
-  const [name, setName] = useState("");
-  const [comment, setComment] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
-
-  // 🔹 Handles form submission
-  const handleSubmit = () => {
-    if (!name.trim() || !comment.trim()) {
-      Alert.alert("Incomplete", "Please fill in all fields before submitting.");
-      return;
-    }
-
-    // Simulate sending data to API or local store
-    Alert.alert("Thank you!", "Your contribution has been recorded ✅");
-    setName("");
-    setComment("");
-  };
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* 🧩 Page title */}
-      <Text style={styles.title}>Contribute 🚻</Text>
-      <Text style={styles.subtitle}>
-        Help the community by sharing useful information.
-      </Text>
-
-      {/* 👤 Name input */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Your name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your name"
-          value={name}
-          onChangeText={setName}
-        />
-      </View>
-
-      {/* 💬 Comment input */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Comment or suggestion</Text>
-        <TextInput
-          style={[styles.input, { height: 100, textAlignVertical: "top" }]}
-          placeholder="Describe your feedback..."
-          multiline
-          value={comment}
-          onChangeText={setComment}
-        />
-      </View>
-
-      {/* 🔘 Public/private toggle */}
-      <TouchableOpacity
-        style={styles.checkbox}
-        onPress={() => setIsPublic(!isPublic)}
-      >
-        <Text style={styles.checkboxText}>
-          {isPublic ? "☑️" : "⬜"} Make my contribution public
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Contribute
         </Text>
-      </TouchableOpacity>
+      </View>
 
-      {/* 📨 Submit button */}
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Send contribution</Text>
-      </TouchableOpacity>
+      {/* ADD RESTROOM BLOCK */}
+      <View style={styles.block}>
+        <Text style={[styles.blockTitle, { color: theme.text }]}>
+          Add a Restroom
+        </Text>
+        <Text style={[styles.blockDescription, { color: theme.textMuted }]}>
+          Help others by adding a restroom that&apos;s not yet on the map.
+        </Text>
 
-      {/* ⬅️ Return button */}
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.secondaryButtonText}>⬅ Back</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity
+          style={[
+            styles.primaryButton,
+            { backgroundColor: theme.primary },
+            Shadows.dp2,
+          ]}
+          onPress={() => router.push("/contribute/add-restroom")}
+        >
+          <Text style={[styles.primaryButtonText, { color: theme.card }]}>
+            Add Restroom
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* REPORT ISSUE BLOCK */}
+      <View style={styles.block}>
+        <Text style={[styles.blockTitle, { color: theme.text }]}>
+          Report an Issue
+        </Text>
+        <Text style={[styles.blockDescription, { color: theme.textMuted }]}>
+          Report issues like closures, cleanliness, or maintenance needs to keep
+          our community informed.
+        </Text>
+
+        <TouchableOpacity
+          style={[
+            styles.secondaryButton,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+          onPress={() => {
+            // plus tard → écran de report
+          }}
+        >
+          <Text
+            style={[styles.secondaryButtonText, { color: theme.textMuted }]}
+          >
+            Report Issue
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fafafa", paddingHorizontal: 20 },
-  title: { fontSize: 28, fontWeight: "800", color: "#007BFF", marginTop: 30 },
-  subtitle: { fontSize: 15, color: "#555", marginBottom: 20 },
-  inputContainer: { marginBottom: 16 },
-  label: { fontSize: 16, fontWeight: "600", marginBottom: 8 },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    borderColor: "#ddd",
-    borderWidth: 1,
-    padding: 12,
-    fontSize: 15,
+  container: { flex: 1 },
+
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
-  checkbox: { marginVertical: 12 },
-  checkboxText: { fontSize: 16, color: "#333" },
-  button: {
-    backgroundColor: "#007BFF",
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+  },
+
+  block: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  blockTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  blockDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+
+  primaryButton: {
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 999,
     alignItems: "center",
-    marginTop: 8,
   },
-  buttonText: { color: "white", fontSize: 16, fontWeight: "600" },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
   secondaryButton: {
-    backgroundColor: "#E0E0E0",
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 999,
+    borderWidth: 1,
     alignItems: "center",
-    marginTop: 12,
   },
-  secondaryButtonText: { color: "#333", fontSize: 16, fontWeight: "600" },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
 });
