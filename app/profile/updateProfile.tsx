@@ -59,7 +59,6 @@ export default function UpdateProfileScreen() {
   };
 
   const handleSave = () => {
-    console.log("Saving profile:", { name, username, bio, primaryLanguage, secondaryLanguage, profileImage });
     Alert.alert("Succès", "Profil mis à jour avec succès", [
       { text: "OK", onPress: () => router.replace("/(tabs)/profile") }
     ]);
@@ -91,7 +90,6 @@ export default function UpdateProfileScreen() {
 
       if (!result.canceled) {
         setProfileImage(result.assets[0].uri);
-        console.log("Nouvelle photo sélectionnée:", result.assets[0].uri);
       }
     } catch (error) {
       console.error("Erreur lors de la sélection de l'image:", error);

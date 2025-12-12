@@ -3,20 +3,13 @@ import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import PageHeader from "../../components/header";
 import { useRouter } from "expo-router";
-
-type BadgeType = {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  obtained: boolean;
-};
+import { Badge } from "../../types/Badge";
 
 export default function BadgesScreen() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  const allBadges: BadgeType[] = [
+  const allBadges: Badge[] = [
     { id: "1", name: "Premier Pas", description: "Ajoutez votre première toilette", image: "https://picsum.photos/100/100?random=1", obtained: true },
     { id: "2", name: "Explorateur", description: "Visitez 10 toilettes différentes", image: "https://picsum.photos/100/100?random=2", obtained: true },
     { id: "3", name: "Critique", description: "Laissez 5 avis", image: "https://picsum.photos/100/100?random=3", obtained: true },
@@ -40,7 +33,7 @@ export default function BadgesScreen() {
 
   const handleBack = () => router.replace("/(tabs)/profile");
 
-  const renderBadge = (badge: BadgeType) => (
+  const renderBadge = (badge: Badge) => (
     <View style={[styles.badgeCard, !badge.obtained && styles.badgeUnobtained]}>
       <Image source={{ uri: badge.image }} style={styles.badgeImage} />
       <Text style={[styles.badgeName, !badge.obtained && styles.textUnobtained]}>

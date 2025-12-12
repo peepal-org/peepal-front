@@ -4,9 +4,8 @@ import { ListItem, Image } from "@rneui/themed";
 import { useNavigation } from "@react-navigation/native";
 import PageHeader from "../../components/header";
 import { useRouter, useLocalSearchParams } from "expo-router";
-
-type TabType = "ajoute" | "commentaires" | "signalements";
-type StatutType = "waiting" | "rejected" | "accepted";
+import { Tab } from "../../types/TabType";
+import { Statut } from "../../types/StatutType";
 
 export default function ContributionsScreen() {
   const navigation = useNavigation();
@@ -15,18 +14,18 @@ export default function ContributionsScreen() {
   
   const data = {
     ajoute: [
-      { id: "1", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as StatutType },
-      { id: "2", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as StatutType },
-      { id: "3", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as StatutType },
-      { id: "4", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as StatutType },
-      { id: "5", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as StatutType },
-      { id: "6", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as StatutType },
-      { id: "7", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as StatutType },
-      { id: "8", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as StatutType },
-      { id: "9", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as StatutType },
-      { id: "10", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as StatutType },
-      { id: "11", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as StatutType },
-      { id: "12", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as StatutType },
+      { id: "1", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as Statut },
+      { id: "2", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as Statut },
+      { id: "3", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as Statut },
+      { id: "4", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as Statut },
+      { id: "5", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as Statut },
+      { id: "6", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as Statut },
+      { id: "7", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as Statut },
+      { id: "8", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as Statut },
+      { id: "9", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as Statut },
+      { id: "10", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "accepted" as Statut },
+      { id: "11", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "waiting" as Statut },
+      { id: "12", title: "Toilettes Turques", address: "123 Main St", image: "https://picsum.photos/200/200?random=1", statut: "rejected" as Statut },
     ],
     commentaires: [
       { id: "13", title: "Toit lettre", address: "456 Oak Ave", image: "https://picsum.photos/200/200?random=2" },
@@ -62,11 +61,11 @@ export default function ContributionsScreen() {
     ],
   };
 
-  const [selected, setSelected] = useState<TabType>("ajoute");
+  const [selected, setSelected] = useState<Tab>("ajoute");
 
   useEffect(() => {
     if (params.tab && (params.tab === "ajoute" || params.tab === "commentaires" || params.tab === "signalements")) {
-      setSelected(params.tab as TabType);
+      setSelected(params.tab as Tab);
     }
   }, [params.tab]);
 
@@ -74,7 +73,7 @@ export default function ContributionsScreen() {
     router.replace("/(tabs)/profile");
   };
 
-  const renderStatutBuffer = (statut: StatutType) => {
+  const renderStatutBuffer = (statut: Statut) => {
     if (statut === "rejected") {
       return (
         <View style={[styles.bufferBase, styles.bufferRejected]}>
@@ -128,7 +127,7 @@ export default function ContributionsScreen() {
 
         <FlatList
           data={data[selected]}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => `${selected}-${item.id}`}
           renderItem={({ item }) => (
             <ListItem 
               bottomDivider 

@@ -1,0 +1,1 @@
+export type Tab = "ajoute" | "commentaires" | "signalements";
