@@ -1,8 +1,15 @@
-import { useState } from "react";
-import { useRouter } from "expo-router";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { useAuth } from "@/auth/useAuth";
 import { login } from "@/auth/authService";
+import { useAuth } from "@/auth/useAuth";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -12,11 +19,11 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const data = await login(email, password);
-      setUser({ token: data.token });
+      const data = await login(email, password); // data.access_token
+      setUser({ token: data.access_token });
       router.replace("/(tabs)/map");
-    } catch (err) {
-      alert("Erreur de connexion");
+    } catch (err: any) {
+      alert(err?.message ?? "Erreur de connexion");
     }
   };
 

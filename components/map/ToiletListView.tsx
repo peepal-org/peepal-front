@@ -1,8 +1,8 @@
 import { Colors } from "@/constants/Colors";
+import { DEFAULT_TOILET_IMAGE } from "@/constants/Images";
 import { Shadows } from "@/constants/Shadows";
-import { DEFAULT_TOILET_IMAGE } from "@/data/toilets";
-import type { Toilet } from "@/types/Toilet";
-import { getDistanceLabel } from "@/utils/distance"; // 👈 NEW
+import type { Toilet } from "@/types/ui/Toilet";
+import { getDistanceLabel } from "@/utils/distance";
 import React from "react";
 import {
   FlatList,

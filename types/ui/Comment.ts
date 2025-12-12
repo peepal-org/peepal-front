@@ -1,9 +1,13 @@
 export type Comment = {
   id: string;
   toiletId: string;
-  userId: string;
   rating: number;
   content: string;
-  createdAt: string; // ISO string
+  createdAt: string;
   dateLabel?: string;
+  user: {
+    id: string;
+    name: string;
+    photoUrl?: string | null;
+  };
 };

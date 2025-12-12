@@ -1,12 +1,14 @@
 import { Colors } from "@/constants/Colors";
+import { apiFetch } from "@/functions/api";
 import { getAddressFromCoords } from "@/utils/geocoding";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,7 +25,6 @@ type RestroomType =
   | "restaurant"
   | "centre_commercial"
   | "autre";
-
 type Accessibility = "accessible" | "non_accessible" | "inconnue";
 type Opening = "24_7" | "horaires_comm" | "inconnus";
 
@@ -36,15 +37,91 @@ export default function AddRestroomScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isLocLoading, setIsLocLoading] = useState(false);
-
+  const [name, setName] = useState("");
   const [type, setType] = useState<RestroomType>("public");
   const [accessibility, setAccessibility] = useState<Accessibility>("inconnue");
   const [opening, setOpening] = useState<Opening>("inconnus");
-  const [notes, setNotes] = useState("");
+  // const [notes, setNotes] = useState("");
+  // const [photoCount, setPhotoCount] = useState(0);
 
-  // On ne stocke que le nombre pour l’instant (mock)
-  const [photoCount, setPhotoCount] = useState(0);
+  const queryClient = useQueryClient();
 
+  async function getUserId(): Promise<number> {
+    const raw = await AsyncStorage.getItem("userProfile");
+    if (!raw)
+      throw new Error("Profil utilisateur introuvable. Reconnecte-toi.");
+    const user = JSON.parse(raw);
+    if (!user?.id)
+      throw new Error("ID utilisateur introuvable. Reconnecte-toi.");
+    return Number(user.id);
+  }
+
+  const createToiletMutation = useMutation({
+    mutationFn: async (payload: any) =>
+      apiFetch("/toilets", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["toilets"] });
+      Alert.alert("Toilette ajoutée 🎉", "Merci pour ta contribution.", [
+        { text: "OK", onPress: () => router.replace("/(tabs)/map") },
+      ]);
+    },
+    onError: (err: any) => {
+      Alert.alert(
+        "Erreur",
+        err?.message ?? "Impossible d’ajouter la toilette."
+      );
+    },
+  });
+
+  async function handleSubmit() {
+    if (!name.trim()) {
+      Alert.alert(
+        "Nom manquant",
+        "Merci de donner un nom (ex: WC République)."
+      );
+      return;
+    }
+    if (!address.trim()) {
+      Alert.alert("Adresse manquante", "Merci de renseigner une adresse.");
+      return;
+    }
+    if (latitude == null || longitude == null) {
+      Alert.alert(
+        "Coordonnées manquantes",
+        "Utilise ta position ou renseigne des coordonnées."
+      );
+      return;
+    }
+
+    const userId = await getUserId();
+
+    const opening_hours =
+      opening === "24_7"
+        ? "24/7"
+        : opening === "horaires_comm"
+        ? "Horaires commerciaux"
+        : "Inconnus";
+
+    const payload = {
+      name: name.trim(),
+      address: address.trim(),
+      latitude,
+      longitude,
+      type: type === "public" ? "public" : "private",
+      accessible: accessibility === "accessible",
+      free: true,
+      clean: true,
+      opening_hours,
+      createdBy: userId,
+    };
+
+    createToiletMutation.mutate(payload); // Appel à la mutation pour envoyer les données
+  }
+
+  // Utiliser la position actuelle de l'utilisateur
   async function handleUseLocation() {
     try {
       setIsLocLoading(true);
@@ -79,52 +156,10 @@ export default function AddRestroomScreen() {
     }
   }
 
-  // 📸 Pour l’instant : fake upload
-  function handleUploadPhoto() {
-    Alert.alert(
-      "Ajout de photo",
-      "Plus tard : ouverture de la galerie / appareil photo pour ajouter une image."
-    );
-    setPhotoCount((prev) => prev + 1);
-  }
-
-  function handleSubmit() {
-    if (!address.trim()) {
-      Alert.alert("Adresse manquante", "Merci de renseigner une adresse.");
-      return;
-    }
-
-    // Fake POST pour l’instant
-    const payload = {
-      address,
-      latitude,
-      longitude,
-      type,
-      accessibility,
-      opening,
-      notes,
-      photoCount,
-      platform: Platform.OS,
-    };
-    console.log("🚽 Nouvelle toilette (mock) :", payload);
-
-    Alert.alert(
-      "Toilette ajoutée 🎉",
-      "Merci pour ta contribution à la communauté Peepal.",
-      [
-        {
-          text: "Retour à la contribution",
-          onPress: () => router.back(), // on n’utilise pas d’écran success pour le moment
-        },
-      ]
-    );
-  }
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* HEADER */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -137,11 +172,26 @@ export default function AddRestroomScreen() {
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           Ajouter des toilettes
         </Text>
-
-        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        {/* Nom */}
+        <Text style={[styles.label, { color: theme.text }]}>Nom</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Ex : WC République"
+          placeholderTextColor={theme.textMuted}
+          style={[
+            styles.input,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+              color: theme.text,
+            },
+          ]}
+        />
+
         {/* Adresse */}
         <Text style={[styles.label, { color: theme.text }]}>Adresse</Text>
         <TextInput
@@ -179,138 +229,63 @@ export default function AddRestroomScreen() {
         <Text style={[styles.label, { color: theme.text, marginTop: 20 }]}>
           Type de toilettes
         </Text>
-        <View
+        <Picker
+          selectedValue={type}
+          onValueChange={(value) => setType(value as RestroomType)}
           style={[
             styles.pickerWrapper,
             { backgroundColor: theme.card, borderColor: theme.border },
           ]}
         >
-          <Picker
-            selectedValue={type}
-            onValueChange={(value) => setType(value as RestroomType)}
-            dropdownIconColor={theme.textMuted}
-          >
-            <Picker.Item label="Toilettes publiques" value="public" />
-            <Picker.Item label="Café / Bar" value="cafe" />
-            <Picker.Item label="Restaurant" value="restaurant" />
-            <Picker.Item
-              label="Centre commercial / Gare"
-              value="centre_commercial"
-            />
-            <Picker.Item label="Autre" value="autre" />
-          </Picker>
-        </View>
+          <Picker.Item label="Toilettes publiques" value="public" />
+          <Picker.Item label="Café / Bar" value="cafe" />
+          <Picker.Item label="Restaurant" value="restaurant" />
+          <Picker.Item
+            label="Centre commercial / Gare"
+            value="centre_commercial"
+          />
+          <Picker.Item label="Autre" value="autre" />
+        </Picker>
 
         {/* Accessibilité */}
         <Text style={[styles.label, { color: theme.text, marginTop: 20 }]}>
           Accessibilité
         </Text>
-        <View
+        <Picker
+          selectedValue={accessibility}
+          onValueChange={(value) => setAccessibility(value as Accessibility)}
           style={[
             styles.pickerWrapper,
             { backgroundColor: theme.card, borderColor: theme.border },
           ]}
         >
-          <Picker
-            selectedValue={accessibility}
-            onValueChange={(value) => setAccessibility(value as Accessibility)}
-            dropdownIconColor={theme.textMuted}
-          >
-            <Picker.Item
-              label="Accessible en fauteuil roulant"
-              value="accessible"
-            />
-            <Picker.Item label="Non accessible" value="non_accessible" />
-            <Picker.Item label="Je ne sais pas" value="inconnue" />
-          </Picker>
-        </View>
+          <Picker.Item
+            label="Accessible en fauteuil roulant"
+            value="accessible"
+          />
+          <Picker.Item label="Non accessible" value="non_accessible" />
+          <Picker.Item label="Je ne sais pas" value="inconnue" />
+        </Picker>
 
         {/* Horaires d’ouverture */}
         <Text style={[styles.label, { color: theme.text, marginTop: 20 }]}>
           Horaires d’ouverture
         </Text>
-        <View
+        <Picker
+          selectedValue={opening}
+          onValueChange={(value) => setOpening(value as Opening)}
           style={[
             styles.pickerWrapper,
             { backgroundColor: theme.card, borderColor: theme.border },
           ]}
         >
-          <Picker
-            selectedValue={opening}
-            onValueChange={(value) => setOpening(value as Opening)}
-            dropdownIconColor={theme.textMuted}
-          >
-            <Picker.Item label="Ouvert 24h/24 - 7j/7" value="24_7" />
-            <Picker.Item
-              label="Horaires commerciaux (ex : 8h–22h)"
-              value="horaires_comm"
-            />
-            <Picker.Item label="Je ne sais pas" value="inconnus" />
-          </Picker>
-        </View>
-
-        {/* Ajouter des photos (optionnel) */}
-        <Text style={[styles.label, { color: theme.text, marginTop: 24 }]}>
-          Ajouter des photos (optionnel)
-        </Text>
-        <View
-          style={[
-            styles.photosBox,
-            { borderColor: theme.border, backgroundColor: theme.card },
-          ]}
-        >
-          <Text style={[styles.photosTitle, { color: theme.text }]}>
-            Met en avant la propreté et les caractéristiques des toilettes.
-          </Text>
-          <Text
-            style={{ color: theme.textMuted, fontSize: 13, marginBottom: 12 }}
-          >
-            Tu pourras plus tard ajouter plusieurs photos (signalétique, entrée,
-            intérieur…).
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.uploadButton, { borderColor: theme.primary }]}
-            onPress={handleUploadPhoto}
-          >
-            <Text style={[styles.uploadButtonText, { color: theme.primary }]}>
-              Ajouter une photo
-            </Text>
-          </TouchableOpacity>
-
-          {photoCount > 0 && (
-            <Text
-              style={{
-                marginTop: 8,
-                fontSize: 12,
-                color: theme.textMuted,
-              }}
-            >
-              {photoCount} photo(s) sélectionnée(s) (mock).
-            </Text>
-          )}
-        </View>
-
-        {/* Notes supplémentaires */}
-        <Text style={[styles.label, { color: theme.text, marginTop: 20 }]}>
-          Notes supplémentaires (optionnel)
-        </Text>
-        <TextInput
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Ex : très propre, présence de table à langer, accès via le sous-sol, etc."
-          placeholderTextColor={theme.textMuted}
-          multiline
-          numberOfLines={4}
-          style={[
-            styles.textarea,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-              color: theme.text,
-            },
-          ]}
-        />
+          <Picker.Item label="Ouvert 24h/24 - 7j/7" value="24_7" />
+          <Picker.Item
+            label="Horaires commerciaux (ex : 8h–22h)"
+            value="horaires_comm"
+          />
+          <Picker.Item label="Je ne sais pas" value="inconnus" />
+        </Picker>
 
         {/* Bouton Submit */}
         <TouchableOpacity

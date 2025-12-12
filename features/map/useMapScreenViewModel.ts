@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/Colors";
-import { toilets } from "@/data/toilets";
+import { apiFetch } from "@/functions/api";
+import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,6 +29,19 @@ export function useMapScreenViewModel() {
   const [locationError, setLocationError] = useState<string | null>(null);
 
   const mapRef = useRef<MapView | null>(null);
+
+  const {
+    data: toilets = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["toilets"],
+    queryFn: () => apiFetch<any[]>("/toilets"),
+  });
+
+  const apiError =
+    error instanceof Error ? error.message : error ? String(error) : null;
 
   // Permission request + position retrieval
   useEffect(() => {
@@ -155,6 +169,10 @@ export function useMapScreenViewModel() {
     filteredToilets,
     userLocation,
     locationError,
+
+    isLoading,
+    apiError,
+    refetchToilets: refetch,
 
     // actions
     recenterOnUser,

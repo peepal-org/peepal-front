@@ -1,4 +1,4 @@
-import { Toilet } from "@/types/Toilet";
+import { Toilet } from "@/types/ui/Toilet";
 import { Text, View } from "react-native";
 import { Marker } from "react-native-maps";
 
