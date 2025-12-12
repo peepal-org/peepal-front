@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/Colors";
+import { DEFAULT_TOILET_IMAGE } from "@/constants/Images";
 import { Shadows } from "@/constants/Shadows";
-import { Toilet } from "@/types/Toilet";
+import { Toilet } from "@/types/ui/Toilet";
 import { getDistanceKm, getDistanceLabel } from "@/utils/distance";
 import React from "react";
 import {
@@ -66,7 +67,10 @@ export function ToiletHorizontalList({
               ]}
               onPress={() => onPressToilet(item.id)}
             >
-              <Image source={{ uri: item.image }} style={styles.cardImage} />
+              <Image
+                source={{ uri: item.image ? item.image : DEFAULT_TOILET_IMAGE }}
+                style={styles.cardImage}
+              />
               <View style={styles.cardTextContainer}>
                 <View style={styles.titleRow}>
                   <Text style={[styles.cardTitle, { color: theme.text }]}>

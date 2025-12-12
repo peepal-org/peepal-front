@@ -1,4 +1,4 @@
-import type { Toilet } from "@/types/Toilet";
+import type { Toilet } from "@/types/ui/Toilet";
 
 export type LatLngLike = {
   latitude: number;

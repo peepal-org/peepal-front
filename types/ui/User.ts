@@ -6,7 +6,7 @@ export type User = {
   email: string;
   createdAt: string; // ISO string
   role: UserRole;
-  photoUrl?: string;
+  photoUrl?: string | null;
   points: number;
   level: number;
 };

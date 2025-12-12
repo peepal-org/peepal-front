@@ -84,10 +84,10 @@ const styles = StyleSheet.create({
 
   listWrapper: {
     flex: 1,
-    marginTop: 80, // laisse la place à la search bar + filtres
+    marginTop: 80,
   },
 
-  // 🔘 Floating retour carte
+  // Floating back to card
   floatingBack: {
     position: "absolute",
     right: 20,

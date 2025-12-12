@@ -1,10 +1,12 @@
 import { Colors } from "@/constants/Colors";
-import { getCommentsForToilet } from "@/data/comments";
-import { DEFAULT_TOILET_IMAGE, toilets } from "@/data/toilets";
-import { getUserById } from "@/data/users";
-import type { Comment } from "@/types/Comment";
-import type { Toilet } from "@/types/Toilet";
+import { DEFAULT_TOILET_IMAGE, DEFAULT_USER_AVATAR } from "@/constants/Images";
+import { fetchComments } from "@/functions/api/comments";
+import { fetchToiletById } from "@/functions/api/toilet";
+import { mapApiComment } from "@/functions/mappers/comments";
+import { mapApiToilet } from "@/functions/mappers/toilet";
+import { Toilet } from "@/types/ui/Toilet";
 import { getAddressFromCoords } from "@/utils/geocoding";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 
@@ -26,16 +28,11 @@ function openInExternalMaps(toilet: Toilet) {
   const lon = toilet.longitude;
   const label = encodeURIComponent(toilet.name);
 
-  // iOS → Apple Plans
   if (Platform.OS === "ios") {
-    const url = `http://maps.apple.com/?ll=${lat},${lon}&q=${label}`;
-    Linking.openURL(url);
+    Linking.openURL(`http://maps.apple.com/?ll=${lat},${lon}&q=${label}`);
     return;
   }
-
-  // Android → geo: (Google Maps ou autre app de cartes)
-  const url = `geo:${lat},${lon}?q=${lat},${lon}(${label})`;
-  Linking.openURL(url);
+  Linking.openURL(`geo:${lat},${lon}?q=${lat},${lon}(${label})`);
 }
 
 export default function ToiletDetailsScreen() {
@@ -44,11 +41,29 @@ export default function ToiletDetailsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
 
-  const toilet: Toilet | undefined = toilets.find((t) => t.id === id);
-  const [address, setAddress] = useState<string>("Chargement de l'adresse…");
+  const [address, setAddress] = useState("Chargement de l'adresse…");
 
-  const toiletId = String(id);
-  const toiletComments: Comment[] = getCommentsForToilet(toiletId);
+  const toiletIdNum = Number(id);
+
+  const { data: apiToilet, isLoading: toiletLoading } = useQuery({
+    queryKey: ["toilets", toiletIdNum],
+    queryFn: () => fetchToiletById(toiletIdNum),
+    enabled: Number.isFinite(toiletIdNum),
+  });
+
+  const toilet: Toilet | undefined = apiToilet
+    ? mapApiToilet(apiToilet)
+    : undefined;
+
+  const { data: toiletComments = [] } = useQuery({
+    queryKey: ["comments", toiletIdNum],
+    queryFn: fetchComments,
+    enabled: Number.isFinite(toiletIdNum),
+    select: (apiComments) =>
+      apiComments
+        .filter((c) => c.toilet?.id === toiletIdNum)
+        .map(mapApiComment),
+  });
 
   const ratingCount = toiletComments.length;
   const averageRating =
@@ -56,26 +71,34 @@ export default function ToiletDetailsScreen() {
       ? null
       : toiletComments.reduce((sum, c) => sum + c.rating, 0) / ratingCount;
 
-  // Retrieve the address from the coordinates
+  const lat = toilet?.latitude;
+  const lon = toilet?.longitude;
+
   useEffect(() => {
-    if (!toilet) return;
+    if (lat == null || lon == null) return;
 
     let cancelled = false;
 
     (async () => {
-      const addr = await getAddressFromCoords(
-        toilet.latitude,
-        toilet.longitude
-      );
-      if (!cancelled) {
-        setAddress(addr);
-      }
+      const addr = await getAddressFromCoords(lat, lon);
+      if (!cancelled) setAddress(addr);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [toilet?.latitude, toilet?.longitude, toilet]);
+  }, [lat, lon]);
+
+  // Loader simple
+  if (toiletLoading) {
+    return (
+      <SafeAreaView
+        style={[styles.center, { backgroundColor: theme.background }]}
+      >
+        <Text style={{ color: theme.textMuted }}>Chargement…</Text>
+      </SafeAreaView>
+    );
+  }
 
   if (!toilet) {
     return (
@@ -102,9 +125,8 @@ export default function ToiletDetailsScreen() {
     );
   }
 
-  // TODO: use real data
   const isOpen = toilet.isOpen ?? true;
-  const hoursLabel = "8h00 - 22h00";
+  const hoursLabel = toilet.openingHours ?? "Horaires inconnus";
   const accessibilityLabel = toilet.accessible
     ? "Accessible UFR"
     : "Non accessible";
@@ -113,37 +135,29 @@ export default function ToiletDetailsScreen() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* HEADER */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.headerBack}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={[styles.headerBackIcon, { color: theme.text }]}>←</Text>
         </TouchableOpacity>
-
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           Infos des toilettes
         </Text>
-
-        {/* little "spacer" to center te title */}
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        {/* Image */}
         <Image
           source={{ uri: toilet.image ?? DEFAULT_TOILET_IMAGE }}
           style={styles.image}
         />
 
-        {/* name & address + "Y aller" compact */}
         <View style={styles.mainInfo}>
           <Text style={[styles.toiletName, { color: theme.text }]}>
             {toilet.name}
           </Text>
-
           <Text style={[styles.toiletAddress, { color: theme.textMuted }]}>
             {address}
           </Text>
@@ -158,7 +172,6 @@ export default function ToiletDetailsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* LIGNE : HORAIRES / STATUT / ACCESSIBILITÉ */}
         <View style={[styles.infoRow, { borderColor: theme.border }]}>
           <View style={styles.infoColumn}>
             <Text style={[styles.infoLabel, { color: theme.textMuted }]}>
@@ -193,14 +206,11 @@ export default function ToiletDetailsScreen() {
           </View>
         </View>
 
-        {/* Avis & commentaires */}
         <View style={styles.section}>
-          {/* Titre + bouton "Noter" */}
           <View style={styles.ratingsHeaderRow}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
               Avis & commentaires
             </Text>
-
             <TouchableOpacity
               onPress={() => router.push(`/toilet/${toilet.id}/rate`)}
               style={styles.rateButton}
@@ -211,8 +221,7 @@ export default function ToiletDetailsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* SI AUCUN AVIS */}
-          {ratingCount === 0 && (
+          {ratingCount === 0 ? (
             <View style={{ marginTop: 12 }}>
               <Text style={{ color: theme.textMuted, fontSize: 14 }}>
                 Pas encore d’avis pour ces toilettes.
@@ -221,18 +230,14 @@ export default function ToiletDetailsScreen() {
                 Sois le·la premier·ère à partager ton expérience !
               </Text>
             </View>
-          )}
-
-          {/* SI AU MOINS 1 AVIS */}
-          {ratingCount > 0 && (
+          ) : (
             <>
-              {/* Résumé note */}
               <View style={styles.ratingSummaryRow}>
                 <View style={styles.ratingScoreColumn}>
                   <Text style={[styles.ratingAverage, { color: theme.text }]}>
                     {averageRating!.toFixed(1)}
                   </Text>
-                  <View className="starsRow" style={styles.starsRow}>
+                  <View style={styles.starsRow}>
                     {Array.from({ length: 5 }).map((_, index) => {
                       const starValue = index + 1;
                       const filled =
@@ -257,65 +262,52 @@ export default function ToiletDetailsScreen() {
                 </View>
               </View>
 
-              {/* Liste des avis */}
-              {toiletComments.map((review) => {
-                const user = getUserById(review.userId);
-
-                return (
-                  <View key={review.id} style={styles.reviewCard}>
-                    <View style={styles.reviewHeaderRow}>
-                      {/* Avatar */}
-                      <View style={styles.reviewAvatar}>
-                        {user?.photoUrl ? (
-                          <Image
-                            source={{ uri: user.photoUrl }}
-                            style={styles.reviewAvatarImage}
-                          />
-                        ) : (
-                          <Text style={styles.reviewAvatarEmoji}>
-                            {user?.name?.[0]?.toUpperCase() ?? "🙂"}
-                          </Text>
-                        )}
-                      </View>
-
-                      {/* Nom + date */}
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[styles.reviewAuthor, { color: theme.text }]}
-                        >
-                          {user?.name ?? "Utilisateur·rice Peepal"}
-                        </Text>
-                        <Text style={{ color: theme.textMuted, fontSize: 12 }}>
-                          {review.dateLabel ?? "Date inconnue"}
-                        </Text>
-                      </View>
-
-                      {/* Étoiles */}
-                      <View style={{ flexDirection: "row" }}>
-                        {Array.from({ length: 5 }).map((_, index) => {
-                          const starValue = index + 1;
-                          const filled = starValue <= review.rating;
-                          return (
-                            <Text
-                              key={starValue}
-                              style={[
-                                styles.starSmall,
-                                { color: filled ? "#FBBF24" : theme.textMuted },
-                              ]}
-                            >
-                              {filled ? "★" : "☆"}
-                            </Text>
-                          );
-                        })}
-                      </View>
+              {toiletComments.map((review) => (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeaderRow}>
+                    <View style={styles.reviewAvatar}>
+                      <Image
+                        source={{
+                          uri: review.user.photoUrl || DEFAULT_USER_AVATAR,
+                        }}
+                        style={styles.reviewAvatarImage}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[styles.reviewAuthor, { color: theme.text }]}
+                      >
+                        {review.user.name}
+                      </Text>
+                      <Text style={{ color: theme.textMuted, fontSize: 12 }}>
+                        {review.dateLabel ?? "Date inconnue"}
+                      </Text>
                     </View>
 
-                    <Text style={[styles.reviewText, { color: theme.text }]}>
-                      {review.content}
-                    </Text>
+                    <View style={{ flexDirection: "row" }}>
+                      {Array.from({ length: 5 }).map((_, index) => {
+                        const starValue = index + 1;
+                        const filled = starValue <= review.rating;
+                        return (
+                          <Text
+                            key={starValue}
+                            style={[
+                              styles.starSmall,
+                              { color: filled ? "#FBBF24" : theme.textMuted },
+                            ]}
+                          >
+                            {filled ? "★" : "☆"}
+                          </Text>
+                        );
+                      })}
+                    </View>
                   </View>
-                );
-              })}
+
+                  <Text style={[styles.reviewText, { color: theme.text }]}>
+                    {review.content}
+                  </Text>
+                </View>
+              ))}
             </>
           )}
         </View>
@@ -328,7 +320,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  // HEADER
   header: {
     height: 52,
     flexDirection: "row",
@@ -336,45 +327,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerBack: {
-    width: 32,
-    alignItems: "flex-start",
-  },
-  headerBackIcon: {
-    fontSize: 20,
-    fontWeight: "500",
-  },
+  headerBack: { width: 32, alignItems: "flex-start" },
+  headerBackIcon: { fontSize: 20, fontWeight: "500" },
   headerTitle: {
     flex: 1,
     textAlign: "center",
     fontSize: 16,
     fontWeight: "600",
   },
-  headerSpacer: {
-    width: 32,
-  },
+  headerSpacer: { width: 32 },
 
-  // IMAGE
-  image: {
-    width: "100%",
-    height: 220,
-  },
+  image: { width: "100%", height: 220 },
 
-  // Title & address
-  mainInfo: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  toiletName: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  toiletAddress: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
+  mainInfo: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+  toiletName: { fontSize: 22, fontWeight: "700", marginBottom: 4 },
+  toiletAddress: { fontSize: 14, marginBottom: 8 },
 
   goButton: {
     alignSelf: "flex-start",
@@ -382,12 +349,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 999,
   },
-  goButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  goButtonText: { fontSize: 14, fontWeight: "600" },
 
-  // Infos (3 Columns)
   infoRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
@@ -397,29 +360,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     gap: 16,
   },
-  infoColumn: {
-    flex: 1,
-  },
+  infoColumn: { flex: 1 },
   infoLabel: {
     fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 4,
   },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  // SECTIONS
-  section: {
-    marginHorizontal: 16,
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
+  infoValue: { fontSize: 14, fontWeight: "500" },
+
+  section: { marginHorizontal: 16, marginTop: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
+
   errorText: { fontSize: 18, marginBottom: 12 },
   secondaryButton: {
     paddingVertical: 12,
@@ -427,10 +379,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  secondaryButtonText: { fontSize: 14, fontWeight: "500" },
+
   ratingsHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -442,10 +392,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "rgba(0,0,0,0.03)",
   },
-  rateButtonText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
+  rateButtonText: { fontSize: 13, fontWeight: "500" },
 
   ratingSummaryRow: {
     flexDirection: "row",
@@ -453,22 +400,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 8,
   },
-  ratingScoreColumn: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-  },
-  ratingAverage: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  starsRow: {
-    flexDirection: "row",
-    marginVertical: 4,
-    gap: 2,
-  },
-  star: {
-    fontSize: 18,
-  },
+  ratingScoreColumn: { flexDirection: "column", alignItems: "flex-start" },
+  ratingAverage: { fontSize: 28, fontWeight: "700" },
+  starsRow: { flexDirection: "row", marginVertical: 4, gap: 2 },
+  star: { fontSize: 18 },
 
   reviewCard: {
     marginTop: 12,
@@ -481,17 +416,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  reviewAuthor: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  starSmall: {
-    fontSize: 14,
-  },
-  reviewText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  reviewAuthor: { fontSize: 14, fontWeight: "600" },
+  starSmall: { fontSize: 14 },
+  reviewText: { fontSize: 14, lineHeight: 20 },
+
   reviewAvatar: {
     width: 36,
     height: 36,
@@ -501,12 +429,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 8,
   },
-  reviewAvatarImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  reviewAvatarEmoji: {
-    fontSize: 20,
-  },
+  reviewAvatarImage: { width: 36, height: 36, borderRadius: 18 },
+  reviewAvatarEmoji: { fontSize: 20 },
 });

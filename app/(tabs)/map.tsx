@@ -8,6 +8,8 @@ import { useMapScreenViewModel } from "@/features/map/useMapScreenViewModel";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pulse } from "react-native-animated-spinkit";
+// import { Wave, ChasingDots, Circle } from "react-native-animated-spinkit";
 import MapView from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -32,11 +34,24 @@ export default function MapScreen() {
     goToContribute,
     mapRef,
     FALLBACK_REGION,
+    isLoading,
+    apiError,
   } = useMapScreenViewModel();
   const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container}>
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <Pulse size={60} color={theme.primary} />
+          <Text style={styles.loadingText}>Chargement des toilettes…</Text>
+        </View>
+      )}
+      {apiError && (
+        <View style={styles.errorBanner}>
+          <Text style={{ color: theme.text }}>Erreur : {apiError}</Text>
+        </View>
+      )}
       {/*  Map */}
       <MapView
         ref={mapRef}
@@ -107,6 +122,20 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: StyleSheet.absoluteFillObject,
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 100,
+  },
+
+  loadingText: {
+    marginTop: 8,
+    fontSize: 16,
+    color: "white",
+    fontWeight: "500",
+  },
 
   locationBanner: {
     position: "absolute",
@@ -116,6 +145,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  errorBanner: {
+    position: "absolute",
+    top: 50,
+    alignSelf: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 0, 0, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 0, 0, 0.25)",
+    zIndex: 120,
+  },
+  errorText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   nearbyToggle: {
     position: "absolute",

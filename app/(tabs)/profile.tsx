@@ -1,5 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { getUserProfile, logout } from "@/auth/authService";
+import { Colors } from "@/constants/Colors";
+import { DEFAULT_USER_AVATAR } from "@/constants/Images";
+import { Shadows } from "@/constants/Shadows";
+import { User } from "@/models/user";
+import { withDefaultImage } from "@/utils/images";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
+  FlatList,
   Image,
   ScrollView,
   StyleSheet,
@@ -7,15 +17,7 @@ import {
   TouchableOpacity,
   useColorScheme,
   View,
-  Dimensions,
-  FlatList,
 } from "react-native";
-import { Colors } from "@/constants/Colors";
-import { Shadows } from "@/constants/Shadows";
-import { User } from "@/models/user";
-import { getUserProfile, logout } from "@/auth/authService";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -119,9 +121,12 @@ export default function ProfileScreen() {
       <View style={styles.profileSection}>
         <View style={styles.header}>
           <Image
-            source={{ uri: userProfile.photo_url }}
+            source={{
+              uri: withDefaultImage(userProfile.photo_url, DEFAULT_USER_AVATAR),
+            }}
             style={[styles.avatar, Shadows.dp4]}
           />
+
           <Text style={[styles.username, { color: theme.text }]}>
             {userProfile.name}
           </Text>
@@ -129,8 +134,8 @@ export default function ProfileScreen() {
             Passionné par les espaces publics propres et accessibles à tous
           </Text>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.editButton}
           onPress={() => router.push("/profile/updateProfile")}
         >
@@ -160,7 +165,9 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Contributions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Contributions
+          </Text>
           <FlatList
             data={contributionItems}
             renderItem={({ item }) => (
@@ -168,12 +175,24 @@ export default function ProfileScreen() {
                 style={[styles.flatList, { backgroundColor: theme.card }]}
                 onPress={() => router.push(item.route as any)}
               >
-                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: theme.primaryLight },
+                  ]}
+                >
                   <Ionicons name={item.icon} size={20} color={theme.primary} />
                 </View>
                 <View style={styles.flatListContent}>
-                  <Text style={[styles.flatListTitle, { color: theme.text }]}>{item.title}</Text>
-                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                  <Text style={[styles.flatListTitle, { color: theme.text }]}>
+                    {item.title}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.flatListSubtitle,
+                      { color: theme.textMuted },
+                    ]}
+                  >
                     {item.subtitle}
                   </Text>
                 </View>
@@ -185,7 +204,9 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Gamification</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Gamification
+          </Text>
           <FlatList
             data={gamificationItems}
             renderItem={({ item }) => (
@@ -193,12 +214,24 @@ export default function ProfileScreen() {
                 style={[styles.flatList, { backgroundColor: theme.card }]}
                 onPress={() => router.push(item.route as any)}
               >
-                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: theme.primaryLight },
+                  ]}
+                >
                   <Ionicons name={item.icon} size={20} color={theme.primary} />
                 </View>
                 <View style={styles.flatListContent}>
-                  <Text style={[styles.flatListTitle, { color: theme.text }]}>{item.title}</Text>
-                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                  <Text style={[styles.flatListTitle, { color: theme.text }]}>
+                    {item.title}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.flatListSubtitle,
+                      { color: theme.textMuted },
+                    ]}
+                  >
                     {item.subtitle}
                   </Text>
                 </View>
@@ -249,9 +282,10 @@ const styles = StyleSheet.create({
     padding: scale(5),
     zIndex: 10,
   },
-  header: { 
+  header: {
     alignItems: "center",
-    marginBottom: scale(20) },
+    marginBottom: scale(20),
+  },
   avatar: {
     width: scale(100),
     height: scale(100),
@@ -260,8 +294,8 @@ const styles = StyleSheet.create({
   },
   username: { fontSize: scale(22), fontWeight: "bold" },
   subtitle: { fontSize: scale(14), marginBottom: verticalScale(5) },
-  bio: { 
-    fontSize: scale(14), 
+  bio: {
+    fontSize: scale(14),
     textAlign: "center",
     paddingHorizontal: scale(40),
     marginTop: verticalScale(10),
@@ -272,12 +306,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: scale(20),
   },
-  statBox: { 
+  statBox: {
     alignItems: "center",
     flex: 1,
   },
   statNumber: { fontSize: scale(20), fontWeight: "bold" },
-  statLabel: { 
+  statLabel: {
     fontSize: scale(14),
     textAlign: "center",
   },
