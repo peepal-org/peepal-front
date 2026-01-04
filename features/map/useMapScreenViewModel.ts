@@ -1,5 +1,8 @@
 import { Colors } from "@/constants/Colors";
 import { apiFetch } from "@/functions/api";
+import { mapApiToilet } from "@/functions/mappers/toilet";
+import type { ApiToilet } from "@/types/api/ApiToilet";
+import type { Toilet } from "@/types/ui/Toilet";
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
@@ -37,7 +40,8 @@ export function useMapScreenViewModel() {
     refetch,
   } = useQuery({
     queryKey: ["toilets"],
-    queryFn: () => apiFetch<any[]>("/toilets"),
+    queryFn: () => apiFetch<ApiToilet[]>("/toilets"),
+    select: (apiToilets) => apiToilets.map(mapApiToilet) as Toilet[],
   });
 
   const apiError =
@@ -122,11 +126,8 @@ export function useMapScreenViewModel() {
   if (filterAccessible) {
     filteredToilets = filteredToilets.filter((t) => t.accessible);
   }
-
   if (filterOpenNow) {
-    filteredToilets = filteredToilets.filter(
-      (t: any) => (t as any).isOpen ?? true
-    );
+    filteredToilets = filteredToilets.filter((t) => t.isOpen === true);
   }
 
   if (searchQuery.trim().length > 0) {

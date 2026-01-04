@@ -107,7 +107,11 @@ export function ToiletHorizontalList({
                       { color: item.isOpen ? theme.success : theme.error },
                     ]}
                   >
-                    {item.isOpen ? "Ouvert" : "Fermé"}
+                    {item.isOpen === true
+                      ? "Ouvert"
+                      : item.isOpen === false
+                      ? "Fermé"
+                      : "Horaires inconnus"}
                   </Text>
                 </View>
               </View>
