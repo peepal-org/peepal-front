@@ -18,6 +18,9 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { fetchComments } from "@/functions/api/comments";
+import { fetchToilets } from "@/functions/api/toilet";
+import { useQuery } from "@tanstack/react-query";
 
 const { width, height } = Dimensions.get("window");
 
@@ -34,19 +37,52 @@ export default function ProfileScreen() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await getUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error("Erreur lors du chargement du profil:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  const { data: commentsData = [] } = useQuery({
+    queryKey: ["userComments"],
+    queryFn: fetchComments,
+    select: (apiComments) => 
+      apiComments.filter((comment) => comment.user.id === userProfile?.id),
+    enabled: !!userProfile,
+  });
+
+  const { data: toiletsData = [] } = useQuery({
+    queryKey: ["userToilets"],
+    queryFn: fetchToilets,
+    select: (apiToilets) => 
+      apiToilets.filter((toilet) => toilet.createdBy?.id === userProfile?.id),
+    enabled: !!userProfile,
+  });
+
+  const commentsCount = commentsData.length;
+  const toiletsCount = toiletsData.length;
+
   const contributionItems = [
     {
       id: "toilettes",
       icon: "location-outline" as keyof typeof Ionicons.glyphMap,
       title: "Toilettes ajoutés",
-      subtitle: "10",
+      subtitle: toiletsCount.toString(),
       route: "/profile/contributions?tab=ajoute",
     },
     {
       id: "commentaires",
       icon: "star-outline" as keyof typeof Ionicons.glyphMap,
       title: "Commentaires",
-      subtitle: "50",
+      subtitle: commentsCount.toString(),
       route: "/profile/contributions?tab=commentaires",
     },
     {
@@ -67,20 +103,6 @@ export default function ProfileScreen() {
       route: "/profile/badges",
     },
   ];
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profile = await getUserProfile();
-        setUserProfile(profile);
-      } catch (error) {
-        console.error("Erreur lors du chargement du profil:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProfile();
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -166,7 +188,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.stats}>
           {[
-            { number: 12, label: "Commentaires" },
+            { number: commentsCount, label: "Commentaires" },
             { number: 5, label: "Signalements" },
             { number: 3, label: "Badges" },
           ].map((stat, index) => (
@@ -192,23 +214,14 @@ export default function ProfileScreen() {
                 style={[styles.flatList, { backgroundColor: theme.card }]}
                 onPress={() => router.push(item.route as any)}
               >
-                <View
-                  style={[
-                    styles.iconContainer,
-                  ]}
-                >
+                <View style={[styles.iconContainer]}>
                   <Ionicons name={item.icon} size={20} color={theme.primary} />
                 </View>
                 <View style={styles.flatListContent}>
                   <Text style={[styles.flatListTitle, { color: theme.text }]}>
                     {item.title}
                   </Text>
-                  <Text
-                    style={[
-                      styles.flatListSubtitle,
-                      { color: theme.textMuted },
-                    ]}
-                  >
+                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
                     {item.subtitle}
                   </Text>
                 </View>
@@ -230,23 +243,14 @@ export default function ProfileScreen() {
                 style={[styles.flatList, { backgroundColor: theme.card }]}
                 onPress={() => router.push(item.route as any)}
               >
-                <View
-                  style={[
-                    styles.iconContainer,
-                  ]}
-                >
+                <View style={[styles.iconContainer]}>
                   <Ionicons name={item.icon} size={20} color={theme.primary} />
                 </View>
                 <View style={styles.flatListContent}>
                   <Text style={[styles.flatListTitle, { color: theme.text }]}>
                     {item.title}
                   </Text>
-                  <Text
-                    style={[
-                      styles.flatListSubtitle,
-                      { color: theme.textMuted },
-                    ]}
-                  >
+                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
                     {item.subtitle}
                   </Text>
                 </View>
