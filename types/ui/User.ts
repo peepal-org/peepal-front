@@ -9,4 +9,5 @@ export type User = {
   photoUrl?: string | null;
   points: number;
   level: number;
+  bio?: string;
 };

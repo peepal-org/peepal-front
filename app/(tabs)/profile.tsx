@@ -146,6 +146,10 @@ export default function ProfileScreen() {
               </Text>
             </View>
           </View>
+
+          <Text style={[styles.bio, { color: theme.textMuted }]}>
+            {userProfile.bio}
+          </Text>
         </View>
 
         <TouchableOpacity

@@ -34,8 +34,7 @@ export default function UpdateProfileScreen() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("Passionné par les espaces publics propres et accessibles à tous");
+  const [bio, setBio] = useState("");
   const [primaryLanguage, setPrimaryLanguage] = useState("French");
   const [secondaryLanguage, setSecondaryLanguage] = useState("English");
   const [profileImage, setProfileImage] = useState("");
@@ -51,12 +50,14 @@ export default function UpdateProfileScreen() {
           if (cachedProfile) {
             setUserProfile(cachedProfile);
             setName(cachedProfile.name || "");
+            setBio(cachedProfile.bio || "");
             setProfileImage(cachedProfile.photo_url || "");
           }
 
           const freshProfile = await fetchUserProfile();
           setUserProfile(freshProfile);
           setName(freshProfile.name || "");
+          setBio(freshProfile.bio || "");
           setProfileImage(freshProfile.photo_url || "");
         } catch (error) {
           console.error("Erreur lors du chargement du profil:", error);
@@ -76,10 +77,11 @@ export default function UpdateProfileScreen() {
     try {
       setSaving(true);
 
+      const bioChanged = bio !== userProfile?.bio;
       const nameChanged = name !== userProfile?.name;
       const photoChanged = newPhotoUri !== null;
 
-      if (!nameChanged && !photoChanged) {
+      if (!nameChanged && !photoChanged && !bioChanged) {
         Alert.alert("Info", "Aucune modification détectée");
         setSaving(false);
         return;
@@ -100,8 +102,9 @@ export default function UpdateProfileScreen() {
         setUploadingPhoto(false);
       }
 
-      const updates: { name?: string; photo_url?: string } = {};
+      const updates: { name?: string; photo_url?: string; bio?: string } = {};
       if (nameChanged) updates.name = name;
+      if (bioChanged) updates.bio = bio;
       if (photoChanged && photoUrl) updates.photo_url = photoUrl;
 
       await updateProfile(updates);
@@ -290,11 +293,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: "white",
-  },
-  username: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 5,
   },
   subtitle: {
     fontSize: 14,
