@@ -130,9 +130,22 @@ export default function ProfileScreen() {
           <Text style={[styles.username, { color: theme.text }]}>
             {userProfile.name}
           </Text>
-          <Text style={[styles.bio, { color: theme.textMuted }]}>
-            Passionné par les espaces publics propres et accessibles à tous
-          </Text>
+          
+          <View style={styles.levelPointsContainer}>
+            <View style={styles.levelContainer}>
+              <Ionicons name="trophy-outline" size={20} color={theme.primary} />
+              <Text style={[styles.levelPointsText, { color: theme.text }]}>
+                Niveau {userProfile.level}
+              </Text>
+            </View>
+            
+            <View style={styles.pointsContainer}>
+              <Ionicons name="star" size={20} color={theme.primary} />
+              <Text style={[styles.levelPointsText, { color: theme.text }]}>
+                {userProfile.points} pts
+              </Text>
+            </View>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -178,7 +191,6 @@ export default function ProfileScreen() {
                 <View
                   style={[
                     styles.iconContainer,
-                    { backgroundColor: theme.primaryLight },
                   ]}
                 >
                   <Ionicons name={item.icon} size={20} color={theme.primary} />
@@ -217,7 +229,6 @@ export default function ProfileScreen() {
                 <View
                   style={[
                     styles.iconContainer,
-                    { backgroundColor: theme.primaryLight },
                   ]}
                 >
                   <Ionicons name={item.icon} size={20} color={theme.primary} />
@@ -292,7 +303,32 @@ const styles = StyleSheet.create({
     borderRadius: scale(50),
     marginBottom: verticalScale(10),
   },
-  username: { fontSize: scale(22), fontWeight: "bold" },
+  username: { 
+    fontSize: scale(22), 
+    fontWeight: "bold",
+    marginBottom: verticalScale(10),
+  },
+  levelPointsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "50%",
+    marginTop: verticalScale(5),
+  },
+  levelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(6),
+  },
+  pointsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(6),
+  },
+  levelPointsText: {
+    fontSize: scale(14),
+    fontWeight: "500",
+  },
   subtitle: { fontSize: scale(14), marginBottom: verticalScale(5) },
   bio: {
     fontSize: scale(14),
