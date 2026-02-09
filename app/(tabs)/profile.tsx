@@ -5,8 +5,8 @@ import { Shadows } from "@/constants/Shadows";
 import { User } from "@/models/user";
 import { withDefaultImage } from "@/utils/images";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -20,7 +20,7 @@ import {
 } from "react-native";
 import { fetchComments } from "@/functions/api/comments";
 import { fetchToilets } from "@/functions/api/toilet";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const { width, height } = Dimensions.get("window");
 
@@ -34,22 +34,33 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+    } catch (error) {
+      console.error("Erreur lors du chargement du profil:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profile = await getUserProfile();
-        setUserProfile(profile);
-      } catch (error) {
-        console.error("Erreur lors du chargement du profil:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadProfile();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+      queryClient.invalidateQueries({ queryKey: ["userComments"] });
+      queryClient.invalidateQueries({ queryKey: ["userToilets"] });
+    }, [])
+  );
 
   const { data: commentsData = [] } = useQuery({
     queryKey: ["userComments"],
@@ -189,7 +200,7 @@ export default function ProfileScreen() {
         <View style={styles.stats}>
           {[
             { number: commentsCount, label: "Commentaires" },
-            { number: 5, label: "Signalements" },
+            { number: 20, label: "Signalements" },
             { number: 3, label: "Badges" },
           ].map((stat, index) => (
             <View key={index} style={styles.statBox}>
