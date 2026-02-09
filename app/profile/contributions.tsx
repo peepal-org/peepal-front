@@ -162,7 +162,9 @@ export default function ContributionsScreen() {
           </Text>
         </View>
       </View>
-      {toilet.statut && renderStatutBuffer(toilet.statut)}
+      {toilet.status && 
+        <Text>{renderStatutBuffer(toilet.status)}</Text>
+      }
     </TouchableOpacity>
   );
 

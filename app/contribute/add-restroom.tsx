@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { Statut } from "../../types/Statut";
 import {
   Alert,
   ScrollView,
@@ -116,6 +117,7 @@ export default function AddRestroomScreen() {
       clean: true,
       opening_hours,
       createdBy: userId,
+      status: "waiting" as Statut,
     };
 
     createToiletMutation.mutate(payload); // Appel à la mutation pour envoyer les données

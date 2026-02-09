@@ -126,6 +126,7 @@ export default function ToiletDetailsScreen() {
   }
 
   const isOpen = toilet.isOpen ?? true;
+  const status = toilet.status ?? "waiting";
   const hoursLabel = toilet.openingHours ?? "Horaires inconnus";
   const accessibilityLabel = toilet.accessible
     ? "Accessible UFR"

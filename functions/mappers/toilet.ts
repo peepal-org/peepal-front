@@ -1,5 +1,6 @@
 import type { ApiToilet } from "@/types/api/ApiToilet";
 import type { Toilet } from "@/types/ui/Toilet";
+import type { Statut } from "@/types/Statut";
 
 function parseTimeToMinutes(hhmm: string): number | null {
   const m = hhmm.trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -25,7 +26,6 @@ function computeIsOpen(
   const s = (openingHoursRaw ?? "").trim().toLowerCase();
   if (!s) return undefined;
 
-  // 24/7 variants
   if (
     s.includes("24/7") ||
     s.includes("24h") ||
@@ -35,10 +35,8 @@ function computeIsOpen(
     return true;
   }
 
-  // Unknown / commercial
   if (s.includes("commercial") || s.includes("inconnu")) return undefined;
 
-  // Range like "08:00-20:30" or "08:00 - 20:30"
   const range = s.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
   if (!range) return undefined;
 
@@ -48,13 +46,30 @@ function computeIsOpen(
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-  // Normal same-day range
   if (start <= end) {
     return nowMinutes >= start && nowMinutes <= end;
   }
 
-  // Overnight range (e.g. 21:00-02:00)
   return nowMinutes >= start || nowMinutes <= end;
+}
+
+function mapApiStatus(status?: string | null): Statut | undefined {
+  switch (status?.toLowerCase()) {
+    case "accepted":
+    case "approved":
+      return "accepted";
+
+    case "waiting":
+    case "pending":
+      return "waiting";
+
+    case "rejected":
+    case "refused":
+      return "rejected";
+
+    default:
+      return undefined;
+  }
 }
 
 export function mapApiToilet(api: ApiToilet): Toilet {
@@ -65,6 +80,8 @@ export function mapApiToilet(api: ApiToilet): Toilet {
     longitude: api.longitude,
     free: api.free,
     accessible: api.accessible,
+
+    status: mapApiStatus(api.status),
 
     address: api.address,
     openingHours: api.opening_hours,

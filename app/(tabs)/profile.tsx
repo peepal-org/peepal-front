@@ -215,6 +215,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
+          {/* <Text>{userProfile.type}</Text> */}
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
             Contributions
           </Text>

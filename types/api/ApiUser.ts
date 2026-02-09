@@ -7,4 +7,5 @@ export type ApiUser = {
   level?: number;
   createdAt?: string;
   bio?: string;
+  type?: string;
 };

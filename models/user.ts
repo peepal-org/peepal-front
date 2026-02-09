@@ -8,4 +8,5 @@ export interface User {
     level?: number;
     created_at: string;
     bio?: string;
+    type?: string;
 }
