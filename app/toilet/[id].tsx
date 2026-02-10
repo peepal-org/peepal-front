@@ -162,14 +162,24 @@ export default function ToiletDetailsScreen() {
             {address}
           </Text>
 
-          <TouchableOpacity
-            style={[styles.goButton, { backgroundColor: theme.primary }]}
-            onPress={() => openInExternalMaps(toilet)}
-          >
-            <Text style={[styles.goButtonText, { color: theme.card }]}>
-              Y aller 🧭
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={[styles.goButton, { backgroundColor: theme.primary }]}
+              onPress={() => openInExternalMaps(toilet)}
+            >
+              <Text style={[styles.goButtonText, { color: theme.card }]}>
+                Y aller 🧭
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.goButton, { backgroundColor: theme.error }]}
+              onPress={() => router.push({ pathname: '/contribute/report-issue', params: { toiletId: toiletIdNum } })}
+            >
+              <Text style={[styles.goButtonText, { color: theme.card }]}>
+                Signaler ⚠️
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={[styles.infoRow, { borderColor: theme.border }]}>
@@ -343,11 +353,17 @@ const styles = StyleSheet.create({
   toiletName: { fontSize: 22, fontWeight: "700", marginBottom: 4 },
   toiletAddress: { fontSize: 14, marginBottom: 8 },
 
+  buttonsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
   goButton: {
-    alignSelf: "flex-start",
+    flex: 1,
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 999,
+    alignItems: "center",
   },
   goButtonText: { fontSize: 14, fontWeight: "600" },
 
