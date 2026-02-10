@@ -1,3 +1,5 @@
+import { ApiUser } from "./ApiUser";
+
 export type ApiToilet = {
   id: number;
   name: string;
@@ -10,4 +12,5 @@ export type ApiToilet = {
   clean: boolean;
   opening_hours: string;
   createdAt: string;
+  createdBy?: ApiUser | { id: number } | null;
 };

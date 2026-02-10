@@ -33,5 +33,6 @@ export async function apiFetch<T>(
   }
 
   const raw = await res.text();
+
   return raw ? (JSON.parse(raw) as T) : (undefined as T);
 }
