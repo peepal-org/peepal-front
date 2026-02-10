@@ -14,11 +14,12 @@ import type { Toilet } from "@/types/ui/Toilet";
 import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_USER_AVATAR, DEFAULT_TOILET_IMAGE } from "@/constants/Images";
 import { getUserProfile } from "@/auth/authService";
+import type { ApiUser } from "@/types/api/ApiUser";
 
 export default function ContributionsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<ApiUser | null>(null);
   
   useEffect(() => {
     const loadProfile = async () => {
