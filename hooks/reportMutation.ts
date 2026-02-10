@@ -1,14 +1,14 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert } from "react-native";
-import { router } from "expo-router";
 import { apiFetch } from "@/functions/api";
-import { ReportDto } from "@/types/api/ApiReport";
+import { Report } from "@/types/api/ApiReport";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
+import { Alert } from "react-native";
 
 export const useCreateReportMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: ReportDto) =>
+    mutationFn: async (payload: Report) =>
       apiFetch("/reports", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -21,10 +21,7 @@ export const useCreateReportMutation = () => {
       ]);
     },
     onError: (err: any) => {
-      Alert.alert(
-        "Erreur",
-        err?.message ?? "Impossible d’envoyer le rapport."
-      );
+      Alert.alert("Erreur", err?.message ?? "Impossible d’envoyer le rapport.");
     },
   });
 };

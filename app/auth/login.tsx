@@ -1,9 +1,6 @@
-import { login } from "@/auth/authService";
-import { useAuth } from "@/auth/useAuth";
 import { Colors } from "@/constants/Colors";
+import { useLoginViewModel } from "@/features/auth/useLoginViewModel";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -19,35 +16,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const router = useRouter();
-  const { refreshAuth } = useAuth();
+  const loginViewModel = useLoginViewModel();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
-
-  const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) return;
-
-    setIsLoading(true);
-    try {
-      await login(email, password);
-      await refreshAuth();
-      router.replace("/(tabs)/map");
-    } catch (err: unknown) {
-      console.log("ERREUR:", err);
-      const message =
-        err instanceof Error ? err.message : "Erreur de connexion";
-      alert(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const isFormValid = email.trim().length > 0 && password.trim().length > 0;
 
   return (
     <SafeAreaView
@@ -88,11 +59,11 @@ export default function Login() {
               style={[styles.input, { color: theme.text }]}
               placeholder="Email"
               placeholderTextColor={theme.textMuted}
-              value={email}
-              onChangeText={setEmail}
+              value={loginViewModel.email}
+              onChangeText={loginViewModel.setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
-              editable={!isLoading}
+              editable={!loginViewModel.isLoading}
             />
           </View>
 
@@ -112,17 +83,21 @@ export default function Login() {
               style={[styles.input, { color: theme.text }]}
               placeholder="Mot de passe"
               placeholderTextColor={theme.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              editable={!isLoading}
+              value={loginViewModel.password}
+              onChangeText={loginViewModel.setPassword}
+              secureTextEntry={!loginViewModel.showPassword}
+              editable={!loginViewModel.isLoading}
             />
             <TouchableOpacity
-              onPress={() => setShowPassword((prev) => !prev)}
+              onPress={() => loginViewModel.setShowPassword((prev) => !prev)}
               hitSlop={8}
             >
               <Ionicons
-                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                name={
+                  loginViewModel.showPassword
+                    ? "eye-off-outline"
+                    : "eye-outline"
+                }
                 size={20}
                 color={theme.textMuted}
               />
@@ -133,16 +108,16 @@ export default function Login() {
             style={[
               styles.loginButton,
               {
-                backgroundColor: isFormValid
+                backgroundColor: loginViewModel.isFormValid
                   ? theme.primary
                   : Colors.palette.disabled,
               },
             ]}
-            onPress={handleLogin}
-            disabled={!isFormValid || isLoading}
+            onPress={loginViewModel.handleLogin}
+            disabled={!loginViewModel.isFormValid || loginViewModel.isLoading}
             activeOpacity={0.8}
           >
-            {isLoading ? (
+            {loginViewModel.isLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={styles.loginButtonText}>Se connecter</Text>
@@ -156,8 +131,8 @@ export default function Login() {
             Pas encore de compte ?
           </Text>
           <TouchableOpacity
-            onPress={() => router.push("/auth/register")}
-            disabled={isLoading}
+            onPress={() => loginViewModel.goToRegister}
+            disabled={loginViewModel.isLoading}
           >
             <Text style={[styles.footerLink, { color: theme.primary }]}>
               {" "}

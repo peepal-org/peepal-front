@@ -1,9 +1,6 @@
-import { register } from "@/auth/authService";
-import { useAuth } from "@/auth/useAuth";
 import { Colors } from "@/constants/Colors";
+import { useRegisterViewModel } from "@/features/auth/useRegisterViewModel";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -19,38 +16,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Register() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const router = useRouter();
-  const { refreshAuth } = useAuth();
+  const registerViewModel = useRegisterViewModel();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
-
-  const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) return;
-
-    setIsLoading(true);
-    try {
-      await register(name, email, password);
-      await refreshAuth();
-      router.replace("/(tabs)/map");
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Erreur d'inscription";
-      alert(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const isFormValid =
-    name.trim().length > 0 &&
-    email.trim().length > 0 &&
-    password.trim().length > 0;
 
   return (
     <SafeAreaView
@@ -91,10 +59,10 @@ export default function Register() {
               style={[styles.input, { color: theme.text }]}
               placeholder="Nom"
               placeholderTextColor={theme.textMuted}
-              value={name}
-              onChangeText={setName}
+              value={registerViewModel.name}
+              onChangeText={registerViewModel.setName}
               autoCapitalize="words"
-              editable={!isLoading}
+              editable={!registerViewModel.isLoading}
             />
           </View>
 
@@ -114,11 +82,11 @@ export default function Register() {
               style={[styles.input, { color: theme.text }]}
               placeholder="Email"
               placeholderTextColor={theme.textMuted}
-              value={email}
-              onChangeText={setEmail}
+              value={registerViewModel.email}
+              onChangeText={registerViewModel.setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
-              editable={!isLoading}
+              editable={!registerViewModel.isLoading}
             />
           </View>
 
@@ -138,17 +106,21 @@ export default function Register() {
               style={[styles.input, { color: theme.text }]}
               placeholder="Mot de passe"
               placeholderTextColor={theme.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              editable={!isLoading}
+              value={registerViewModel.password}
+              onChangeText={registerViewModel.setPassword}
+              secureTextEntry={!registerViewModel.showPassword}
+              editable={!registerViewModel.isLoading}
             />
             <TouchableOpacity
-              onPress={() => setShowPassword((prev) => !prev)}
+              onPress={() => registerViewModel.setShowPassword((prev) => !prev)}
               hitSlop={8}
             >
               <Ionicons
-                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                name={
+                  registerViewModel.showPassword
+                    ? "eye-off-outline"
+                    : "eye-outline"
+                }
                 size={20}
                 color={theme.textMuted}
               />
@@ -159,16 +131,18 @@ export default function Register() {
             style={[
               styles.registerButton,
               {
-                backgroundColor: isFormValid
+                backgroundColor: registerViewModel.isFormValid
                   ? theme.primary
                   : Colors.palette.disabled,
               },
             ]}
-            onPress={handleRegister}
-            disabled={!isFormValid || isLoading}
+            onPress={registerViewModel.handleRegister}
+            disabled={
+              !registerViewModel.isFormValid || registerViewModel.isLoading
+            }
             activeOpacity={0.8}
           >
-            {isLoading ? (
+            {registerViewModel.isLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={styles.registerButtonText}>S{"'"}inscrire</Text>
@@ -182,8 +156,8 @@ export default function Register() {
             Déjà un compte ?
           </Text>
           <TouchableOpacity
-            onPress={() => router.push("/auth/login")}
-            disabled={isLoading}
+            onPress={() => registerViewModel.goToLogin}
+            disabled={registerViewModel.isLoading}
           >
             <Text style={[styles.footerLink, { color: theme.primary }]}>
               {" "}
