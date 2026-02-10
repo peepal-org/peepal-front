@@ -92,3 +92,92 @@ export const logout = async () => {
 export const getToken = async () => {
   return await AsyncStorage.getItem(ENV.TOKEN_KEY);
 };
+
+export const fetchUserProfile = async (): Promise<User> => {
+  const token = await getToken();
+  
+  if (!token) {
+    throw new Error("Vous devez être connecté pour accéder au profil");
+  }
+
+  const res = await fetch(`${API_URL}/users/me`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
+    throw new Error(errorData.message || `Échec de la récupération du profil (${res.status})`);
+  }
+
+  const userProfile = await res.json();
+  await saveUserProfile(userProfile);
+  return userProfile;
+};
+
+export const updateProfile = async (updates: {
+  name?: string;
+  photo_url?: string | null;
+}): Promise<User> => {
+  const token = await getToken();
+  
+  if (!token) {
+    throw new Error("Vous devez être connecté pour modifier votre profil");
+  }
+
+  const res = await fetch(`${API_URL}/users/me`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
+    throw new Error(errorData.message || `Échec de la mise à jour du profil (${res.status})`);
+  }
+
+  const updatedUser = await res.json();
+  await saveUserProfile(updatedUser);
+  return updatedUser;
+};
+
+export const uploadProfilePhoto = async (imageUri: string): Promise<string> => {
+  const token = await getToken();
+  
+  if (!token) {
+    throw new Error("Vous devez être connecté pour uploader une photo");
+  }
+
+  const formData = new FormData();
+  const filename = imageUri.split('/').pop() || 'photo.jpg';
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+  formData.append('file', {
+    uri: imageUri,
+    name: filename,
+    type: type,
+  } as any);
+
+  const res = await fetch(`${API_URL}/users/upload-photo`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
+    throw new Error(errorData.message || `Échec de l'upload de la photo (${res.status})`);
+  }
+
+  const data = await res.json();
+  return data.url;
+};

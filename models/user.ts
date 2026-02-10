@@ -7,4 +7,5 @@ export interface User {
     points?: number;
     level?: number;
     created_at: string;
+    bio?: string;
 }

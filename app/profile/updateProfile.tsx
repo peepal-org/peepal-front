@@ -18,7 +18,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import { User } from "@/models/user";
-import { getUserProfile } from "@/auth/authService";
+import { 
+  getUserProfile, 
+  fetchUserProfile, 
+  updateProfile, 
+  uploadProfilePhoto 
+} from "@/auth/authService";
+import { ActivityIndicator } from "react-native";
 
 export default function UpdateProfileScreen() {
   const colorScheme = useColorScheme();
@@ -28,39 +34,89 @@ export default function UpdateProfileScreen() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("Passionné par les espaces publics propres et accessibles à tous");
+  const [bio, setBio] = useState("");
   const [primaryLanguage, setPrimaryLanguage] = useState("French");
   const [secondaryLanguage, setSecondaryLanguage] = useState("English");
   const [profileImage, setProfileImage] = useState("");
 
+  const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [newPhotoUri, setNewPhotoUri] = useState<string | null>(null);
+
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profile = await getUserProfile();
-        setUserProfile(profile);
-        if (profile) {
-          setName(profile.name || "");
-          setProfileImage(profile.photo_url || "");
+      const loadProfile = async () => {
+        try {
+          const cachedProfile = await getUserProfile();
+          if (cachedProfile) {
+            setUserProfile(cachedProfile);
+            setName(cachedProfile.name || "");
+            setBio(cachedProfile.bio || "");
+            setProfileImage(cachedProfile.photo_url || "");
+          }
+
+          const freshProfile = await fetchUserProfile();
+          setUserProfile(freshProfile);
+          setName(freshProfile.name || "");
+          setBio(freshProfile.bio || "");
+          setProfileImage(freshProfile.photo_url || "");
+        } catch (error) {
+          console.error("Erreur lors du chargement du profil:", error);
+          Alert.alert("Erreur", "Impossible de charger le profil.");
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error("Erreur lors du chargement du profil:", error);
-        Alert.alert("Erreur", "Impossible de charger le profil");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProfile();
-  }, []);
+      };
+      loadProfile();
+    }, []);
 
   const handleBack = () => {
     router.replace("/(tabs)/profile");
   };
 
-  const handleSave = () => {
-    Alert.alert("Succès", "Profil mis à jour avec succès", [
-      { text: "OK", onPress: () => router.replace("/(tabs)/profile") }
-    ]);
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+
+      const bioChanged = bio !== userProfile?.bio;
+      const nameChanged = name !== userProfile?.name;
+      const photoChanged = newPhotoUri !== null;
+
+      if (!nameChanged && !photoChanged && !bioChanged) {
+        Alert.alert("Info", "Aucune modification détectée");
+        setSaving(false);
+        return;
+      }
+
+      let photoUrl = profileImage;
+
+      if (newPhotoUri) {
+        setUploadingPhoto(true);
+        try {
+          photoUrl = await uploadProfilePhoto(newPhotoUri);
+        } catch (uploadError) {
+          Alert.alert("Erreur", "Impossible d'uploader la photo.");
+          setUploadingPhoto(false);
+          setSaving(false);
+          return;
+        }
+        setUploadingPhoto(false);
+      }
+
+      const updates: { name?: string; photo_url?: string; bio?: string } = {};
+      if (nameChanged) updates.name = name;
+      if (bioChanged) updates.bio = bio;
+      if (photoChanged && photoUrl) updates.photo_url = photoUrl;
+
+      await updateProfile(updates);
+
+      Alert.alert("Succès", "Profil mis à jour avec succès", [
+        { text: "OK", onPress: () => router.replace("/(tabs)/profile") }
+      ]);
+    } catch (error: any) {
+      Alert.alert("Erreur", error.message || "Impossible de mettre à jour le profil");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -72,11 +128,7 @@ export default function UpdateProfileScreen() {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert(
-          "Permission refusée",
-          "Vous devez autoriser l'accès à la galerie pour changer votre photo de profil.",
-          [{ text: "OK" }]
-        );
+        Alert.alert("Permission refusée", "Vous devez autoriser l'accès à la galerie.");
         return;
       }
 
@@ -84,27 +136,28 @@ export default function UpdateProfileScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 1,
+        quality: 0.8,
       });
 
       if (!result.canceled) {
-        setProfileImage(result.assets[0].uri);
+        const selectedUri = result.assets[0].uri;
+        setProfileImage(selectedUri);
+        setNewPhotoUri(selectedUri);
       }
     } catch (error) {
-      console.error("Erreur lors de la sélection de l'image:", error);
       Alert.alert("Erreur", "Une erreur est survenue lors de la sélection de l'image.");
     }
-  };
+    };
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <PageHeader title="Profil" onBack={handleBack} />
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: theme.textMuted }}>Chargement...</Text>
+    if (loading) {
+      return (
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          <PageHeader title="Profil" onBack={handleBack} />
+          <View style={styles.loadingContainer}>
+            <Text style={{ color: theme.textMuted }}>Chargement...</Text>
+          </View>
         </View>
-      </View>
-    );
+      );
   }
 
   if (!userProfile) {
@@ -183,10 +236,19 @@ export default function UpdateProfileScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.saveButton, { backgroundColor: theme.primary }]}
+            style={[
+              styles.saveButton, 
+              { backgroundColor: theme.primary },
+              saving && { opacity: 0.6 }
+            ]}
             onPress={handleSave}
+            disabled={saving}
           >
-            <Text style={styles.saveButtonText}>Enregistrer</Text>
+            {saving ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.saveButtonText}>Enregistrer</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -231,11 +293,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: "white",
-  },
-  username: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 5,
   },
   subtitle: {
     fontSize: 14,

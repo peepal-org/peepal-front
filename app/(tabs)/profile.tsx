@@ -5,8 +5,8 @@ import { Shadows } from "@/constants/Shadows";
 import { User } from "@/models/user";
 import { withDefaultImage } from "@/utils/images";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -18,6 +18,9 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { fetchComments } from "@/functions/api/comments";
+import { fetchToilets } from "@/functions/api/toilet";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const { width, height } = Dimensions.get("window");
 
@@ -31,22 +34,66 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+    } catch (error) {
+      console.error("Erreur lors du chargement du profil:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+      queryClient.invalidateQueries({ queryKey: ["userComments"] });
+      queryClient.invalidateQueries({ queryKey: ["userToilets"] });
+    }, [])
+  );
+
+  const { data: commentsData = [] } = useQuery({
+    queryKey: ["userComments"],
+    queryFn: fetchComments,
+    select: (apiComments) => 
+      apiComments.filter((comment) => comment.user.id === userProfile?.id),
+    enabled: !!userProfile,
+  });
+
+  const { data: toiletsData = [] } = useQuery({
+    queryKey: ["userToilets"],
+    queryFn: fetchToilets,
+    select: (apiToilets) => 
+      apiToilets.filter((toilet) => toilet.createdBy?.id === userProfile?.id),
+    enabled: !!userProfile,
+  });
+
+  const commentsCount = commentsData.length;
+  const toiletsCount = toiletsData.length;
 
   const contributionItems = [
     {
       id: "toilettes",
       icon: "location-outline" as keyof typeof Ionicons.glyphMap,
       title: "Toilettes ajoutés",
-      subtitle: "10",
+      subtitle: toiletsCount.toString(),
       route: "/profile/contributions?tab=ajoute",
     },
     {
       id: "commentaires",
       icon: "star-outline" as keyof typeof Ionicons.glyphMap,
       title: "Commentaires",
-      subtitle: "50",
+      subtitle: commentsCount.toString(),
       route: "/profile/contributions?tab=commentaires",
     },
     {
@@ -67,20 +114,6 @@ export default function ProfileScreen() {
       route: "/profile/badges",
     },
   ];
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profile = await getUserProfile();
-        setUserProfile(profile);
-      } catch (error) {
-        console.error("Erreur lors du chargement du profil:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProfile();
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -130,8 +163,25 @@ export default function ProfileScreen() {
           <Text style={[styles.username, { color: theme.text }]}>
             {userProfile.name}
           </Text>
+          
+          <View style={styles.levelPointsContainer}>
+            <View style={styles.levelContainer}>
+              <Ionicons name="trophy-outline" size={20} color={theme.primary} />
+              <Text style={[styles.levelPointsText, { color: theme.text }]}>
+                Niveau {userProfile.level}
+              </Text>
+            </View>
+            
+            <View style={styles.pointsContainer}>
+              <Ionicons name="star" size={20} color={theme.primary} />
+              <Text style={[styles.levelPointsText, { color: theme.text }]}>
+                {userProfile.points} pts
+              </Text>
+            </View>
+          </View>
+
           <Text style={[styles.bio, { color: theme.textMuted }]}>
-            Passionné par les espaces publics propres et accessibles à tous
+            {userProfile.bio}
           </Text>
         </View>
 
@@ -149,8 +199,8 @@ export default function ProfileScreen() {
       >
         <View style={styles.stats}>
           {[
-            { number: 12, label: "Commentaires" },
-            { number: 5, label: "Signalements" },
+            { number: commentsCount, label: "Commentaires" },
+            { number: 20, label: "Signalements" },
             { number: 3, label: "Badges" },
           ].map((stat, index) => (
             <View key={index} style={styles.statBox}>
@@ -175,24 +225,14 @@ export default function ProfileScreen() {
                 style={[styles.flatList, { backgroundColor: theme.card }]}
                 onPress={() => router.push(item.route as any)}
               >
-                <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: theme.primaryLight },
-                  ]}
-                >
+                <View style={[styles.iconContainer]}>
                   <Ionicons name={item.icon} size={20} color={theme.primary} />
                 </View>
                 <View style={styles.flatListContent}>
                   <Text style={[styles.flatListTitle, { color: theme.text }]}>
                     {item.title}
                   </Text>
-                  <Text
-                    style={[
-                      styles.flatListSubtitle,
-                      { color: theme.textMuted },
-                    ]}
-                  >
+                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
                     {item.subtitle}
                   </Text>
                 </View>
@@ -214,24 +254,14 @@ export default function ProfileScreen() {
                 style={[styles.flatList, { backgroundColor: theme.card }]}
                 onPress={() => router.push(item.route as any)}
               >
-                <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: theme.primaryLight },
-                  ]}
-                >
+                <View style={[styles.iconContainer]}>
                   <Ionicons name={item.icon} size={20} color={theme.primary} />
                 </View>
                 <View style={styles.flatListContent}>
                   <Text style={[styles.flatListTitle, { color: theme.text }]}>
                     {item.title}
                   </Text>
-                  <Text
-                    style={[
-                      styles.flatListSubtitle,
-                      { color: theme.textMuted },
-                    ]}
-                  >
+                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
                     {item.subtitle}
                   </Text>
                 </View>
@@ -292,7 +322,32 @@ const styles = StyleSheet.create({
     borderRadius: scale(50),
     marginBottom: verticalScale(10),
   },
-  username: { fontSize: scale(22), fontWeight: "bold" },
+  username: { 
+    fontSize: scale(22), 
+    fontWeight: "bold",
+    marginBottom: verticalScale(10),
+  },
+  levelPointsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "50%",
+    marginTop: verticalScale(5),
+  },
+  levelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(6),
+  },
+  pointsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(6),
+  },
+  levelPointsText: {
+    fontSize: scale(14),
+    fontWeight: "500",
+  },
   subtitle: { fontSize: scale(14), marginBottom: verticalScale(5) },
   bio: {
     fontSize: scale(14),

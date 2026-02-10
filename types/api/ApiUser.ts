@@ -6,4 +6,5 @@ export type ApiUser = {
   points?: number;
   level?: number;
   createdAt?: string;
+  bio?: string;
 };
