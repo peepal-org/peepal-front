@@ -171,7 +171,7 @@ export default function Register() {
             {isLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.registerButtonText}>S'inscrire</Text>
+              <Text style={styles.registerButtonText}>S{"'"}inscrire</Text>
             )}
           </TouchableOpacity>
         </View>

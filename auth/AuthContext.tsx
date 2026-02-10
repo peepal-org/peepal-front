@@ -35,7 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setIsAuthenticated(false);
       }
-    } catch {
+    } catch (err) {
+      console.error("refreshAuth - erreur:", err);
       setUser(null);
       setIsAuthenticated(false);
     } finally {

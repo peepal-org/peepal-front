@@ -30,15 +30,18 @@ export default function Login() {
   const theme = Colors[colorScheme ?? "light"];
 
   const handleLogin = async () => {
-    if (!email.trim() || password.trim()) return;
+    if (!email.trim() || !password.trim()) return;
 
     setIsLoading(true);
     try {
-      await login(email, password); //authService store token in asyncStorage
-      await refreshAuth(); //synchronize context
+      await login(email, password);
+      await refreshAuth();
       router.replace("/(tabs)/map");
-    } catch (err: any) {
-      alert(err?.message ?? "Erreur de connexion");
+    } catch (err: unknown) {
+      console.log("ERREUR:", err);
+      const message =
+        err instanceof Error ? err.message : "Erreur de connexion";
+      alert(message);
     } finally {
       setIsLoading(false);
     }
