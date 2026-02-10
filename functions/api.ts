@@ -1,14 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "@/auth/authService";
 
-import { Platform } from "react-native";
-
-export const API_URL =
-  Platform.OS === "android"
-    ? process.env.EXPO_PUBLIC_API_URL_ANDROID
-    : process.env.EXPO_PUBLIC_API_URL;
+import { API_URL } from "@/config/env";
 
 async function getHeaders() {
-  const token = await AsyncStorage.getItem("token");
+  const token = await getToken();
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -17,7 +12,7 @@ async function getHeaders() {
 
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const headers = await getHeaders();
   const url = `${API_URL}/${path.replace(/^\//, "")}`;

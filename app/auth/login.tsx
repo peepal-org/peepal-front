@@ -1,139 +1,248 @@
 import { login } from "@/auth/authService";
 import { useAuth } from "@/auth/useAuth";
+import { Colors } from "@/constants/Colors";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useColorScheme,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { refreshAuth } = useAuth();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
 
   const handleLogin = async () => {
+    if (!email.trim() || password.trim()) return;
+
+    setIsLoading(true);
     try {
-      const data = await login(email, password); // data.access_token
-      setUser({ token: data.access_token });
+      await login(email, password); //authService store token in asyncStorage
+      await refreshAuth(); //synchronize context
       router.replace("/(tabs)/map");
     } catch (err: any) {
       alert(err?.message ?? "Erreur de connexion");
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const isFormValid = email.trim().length > 0 && password.trim().length > 0;
+
   return (
-    <View style={styles.container}>
-      {/* Logo */}
-      <Image
-        source={require("@/assets/images/android-icon-foreground.png")}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        {/* Header */}
+        <View style={styles.headerSection}>
+          <Image
+            source={require("@/assets/images/peepal-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={[styles.appName, { color: theme.primary }]}>Peepal</Text>
+          <Text style={[styles.tagline, { color: theme.textMuted }]}>
+            Trouve des toilettes proches de toi
+          </Text>
+        </View>
 
-      {/* Titre */}
-      <Text style={styles.title}>Peepal 🚻</Text>
-      <Text style={styles.subtitle}>Trouve des toilettes proches 💧</Text>
+        {/* Formulaire */}
+        <View style={styles.formSection}>
+          <View
+            style={[
+              styles.inputContainer,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <Ionicons
+              name="mail-outline"
+              size={20}
+              color={theme.textMuted}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={[styles.input, { color: theme.text }]}
+              placeholder="Email"
+              placeholderTextColor={theme.textMuted}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              editable={!isLoading}
+            />
+          </View>
 
-      {/* Formulaire */}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#888"
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Mot de passe"
-        placeholderTextColor="#888"
-        secureTextEntry
-        onChangeText={setPassword}
-      />
+          <View
+            style={[
+              styles.inputContainer,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <Ionicons
+              name="lock-closed-outline"
+              size={20}
+              color={theme.textMuted}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={[styles.input, { color: theme.text }]}
+              placeholder="Mot de passe"
+              placeholderTextColor={theme.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword((prev) => !prev)}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color={theme.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
 
-      {/* Bouton login */}
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Se connecter</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.loginButton,
+              {
+                backgroundColor: isFormValid
+                  ? theme.primary
+                  : Colors.palette.disabled,
+              },
+            ]}
+            onPress={handleLogin}
+            disabled={!isFormValid || isLoading}
+            activeOpacity={0.8}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.loginButtonText}>Se connecter</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
-      {/* Lien vers register */}
-      <Text style={styles.link} onPress={() => router.push("/auth/register")}>
-        Pas encore inscrit ?
-      </Text>
-    </View>
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: theme.textMuted }]}>
+            Pas encore de compte ?
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/auth/register")}
+            disabled={isLoading}
+          >
+            <Text style={[styles.footerLink, { color: theme.primary }]}>
+              {" "}
+              Créer un compte
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    paddingHorizontal: 28,
     justifyContent: "center",
+  },
+
+  // Header
+  headerSection: {
     alignItems: "center",
-    paddingHorizontal: 24,
+    marginBottom: 40,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 300,
+    height: 300,
     marginBottom: 20,
   },
-  title: {
-    fontSize: 28,
+  appName: {
+    fontSize: 32,
     fontWeight: "800",
-    color: "#007BFF",
+    letterSpacing: 0.5,
   },
-  subtitle: {
-    fontSize: 16,
-    color: "#555",
+  tagline: {
+    fontSize: 15,
+    marginTop: 6,
     textAlign: "center",
-    marginBottom: 24,
+  },
+
+  // Form
+  formSection: {
+    gap: 14,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 52,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    width: "100%",
-    backgroundColor: "#fff",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderColor: "#ddd",
-    borderWidth: 1,
-    marginBottom: 12,
-    fontSize: 16,
+    flex: 1,
+    fontSize: 15,
+    height: "100%",
   },
-  button: {
-    backgroundColor: "#007BFF",
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 8,
-    marginTop: 8,
-    shadowColor: "#007BFF",
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 3,
-    width: "100%",
+  loginButton: {
+    height: 52,
+    borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
+    marginTop: 6,
   },
-  buttonText: {
-    color: "white",
+  loginButtonText: {
+    color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
-  link: {
-    marginTop: 16,
-    fontSize: 14,
-    color: "#007BFF",
-    textDecorationLine: "underline",
+
+  // Footer
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 28,
   },
   footerText: {
-    position: "absolute",
-    bottom: 20,
-    fontSize: 12,
-    color: "#aaa",
+    fontSize: 14,
+  },
+  footerLink: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
