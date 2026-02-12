@@ -59,27 +59,72 @@ export default function ProfileScreen() {
       loadProfile();
       queryClient.invalidateQueries({ queryKey: ["userComments"] });
       queryClient.invalidateQueries({ queryKey: ["userToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["adminOwnComments"] });
+      queryClient.invalidateQueries({ queryKey: ["adminOwnToilets"] });
     }, [])
   );
 
   const { data: commentsData = [] } = useQuery({
-    queryKey: ["userComments"],
+    queryKey: ["userComments", userProfile?.id, userProfile?.type],
     queryFn: fetchComments,
-    select: (apiComments) => 
-      apiComments.filter((comment) => comment.user.id === userProfile?.id),
+    select: (apiComments) => {
+
+      if (userProfile?.type === "admin") {
+        return apiComments;
+      }
+
+      return apiComments.filter(
+        (comment) => comment.user.id === userProfile?.id
+      );
+    },
     enabled: !!userProfile,
   });
 
   const { data: toiletsData = [] } = useQuery({
-    queryKey: ["userToilets"],
+    queryKey: ["userToilets", userProfile?.id, userProfile?.type],
     queryFn: fetchToilets,
-    select: (apiToilets) => 
-      apiToilets.filter((toilet) => toilet.createdBy?.id === userProfile?.id),
+    select: (apiToilets) => {
+
+      if (userProfile?.type === "admin") {
+        return apiToilets;
+      }
+
+      return apiToilets.filter(
+        (toilet) => toilet.createdBy?.id === userProfile?.id
+      );
+    },
     enabled: !!userProfile,
+  });
+
+  // Queries spécifiques pour les contributions personnelles de l'admin
+  const { data: adminOwnCommentsData = [] } = useQuery({
+    queryKey: ["adminOwnComments", userProfile?.id],
+    queryFn: fetchComments,
+    select: (apiComments) => {
+      return apiComments.filter(
+        (comment) => comment.user.id === userProfile?.id
+      );
+    },
+    enabled: !!userProfile && userProfile?.type === "admin",
+  });
+
+  const { data: adminOwnToiletsData = [] } = useQuery({
+    queryKey: ["adminOwnToilets", userProfile?.id],
+    queryFn: fetchToilets,
+    select: (apiToilets) => {
+      return apiToilets.filter(
+        (toilet) => toilet.createdBy?.id === userProfile?.id
+      );
+    },
+    enabled: !!userProfile && userProfile?.type === "admin",
   });
 
   const commentsCount = commentsData.length;
   const toiletsCount = toiletsData.length;
+  
+  // Compteurs pour les contributions personnelles de l'admin
+  const adminOwnCommentsCount = adminOwnCommentsData.length;
+  const adminOwnToiletsCount = adminOwnToiletsData.length;
 
   const contributionItems = [
     {
@@ -102,6 +147,24 @@ export default function ProfileScreen() {
       title: "Signalements",
       subtitle: "20",
       route: "/profile/contributions?tab=signalements",
+    },
+  ];
+
+  // Section "Mes contributions" pour les admins
+  const myContributionItems = [
+    {
+      id: "mes-toilettes",
+      icon: "location-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Mes toilettes ajoutés",
+      subtitle: adminOwnToiletsCount.toString(),
+      route: "/profile/contributions?tab=ajoute",
+    },
+    {
+      id: "mes-commentaires",
+      icon: "star-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Mes commentaires",
+      subtitle: adminOwnCommentsCount.toString(),
+      route: "/profile/contributions?tab=commentaires",
     },
   ];
 
@@ -163,6 +226,12 @@ export default function ProfileScreen() {
           <Text style={[styles.username, { color: theme.text }]}>
             {userProfile.name}
           </Text>
+
+          {userProfile.type === "admin" && (
+            <Text style={[styles.admin, { color: theme.text }]}>
+              Compte admin
+            </Text>
+          )}
           
           <View style={styles.levelPointsContainer}>
             <View style={styles.levelContainer}>
@@ -214,8 +283,40 @@ export default function ProfileScreen() {
           ))}
         </View>
 
+        {/* Section "Mes contributions" - uniquement pour les admins */}
+        {userProfile.type === "admin" && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Mes contributions
+            </Text>
+            <FlatList
+              data={myContributionItems}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.flatList, { backgroundColor: theme.card }]}
+                  onPress={() => router.push(item.route as any)}
+                >
+                  <View style={[styles.iconContainer]}>
+                    <Ionicons name={item.icon} size={20} color={theme.primary} />
+                  </View>
+                  <View style={styles.flatListContent}>
+                    <Text style={[styles.flatListTitle, { color: theme.text }]}>
+                      {item.title}
+                    </Text>
+                    <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                      {item.subtitle}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+            />
+          </View>
+        )}
+
         <View style={styles.section}>
-          {/* <Text>{userProfile.type}</Text> */}
+          
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
             Contributions
           </Text>
@@ -395,6 +496,15 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     flex: 1,
+  },
+  admin: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 3,
+  },
+  adminText: {
+    color:"#4CAF50"
   },
   flatListTitle: {
     fontSize: scale(16),
