@@ -1,35 +1,35 @@
-import React, { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  useColorScheme,
-  Alert,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native";
+  fetchUserProfile,
+  getUserProfile,
+  updateProfile,
+  uploadProfilePhoto,
+} from "@/auth/authService";
+import { useToast } from "@/components/toast/useToast";
 import { Colors } from "@/constants/Colors";
 import { Shadows } from "@/constants/Shadows";
-import PageHeader from "../../components/header";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from 'expo-image-picker';
-import { User } from "@/models/user";
-import { 
-  getUserProfile, 
-  fetchUserProfile, 
-  updateProfile, 
-  uploadProfilePhoto 
-} from "@/auth/authService";
-import { ActivityIndicator } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
+import PageHeader from "../../components/header";
+import { User } from "../../types/ui/User";
 
 export default function UpdateProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const router = useRouter();
+  const toast = useToast();
 
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,30 +44,30 @@ export default function UpdateProfileScreen() {
   const [newPhotoUri, setNewPhotoUri] = useState<string | null>(null);
 
   useEffect(() => {
-      const loadProfile = async () => {
-        try {
-          const cachedProfile = await getUserProfile();
-          if (cachedProfile) {
-            setUserProfile(cachedProfile);
-            setName(cachedProfile.name || "");
-            setBio(cachedProfile.bio || "");
-            setProfileImage(cachedProfile.photo_url || "");
-          }
-
-          const freshProfile = await fetchUserProfile();
-          setUserProfile(freshProfile);
-          setName(freshProfile.name || "");
-          setBio(freshProfile.bio || "");
-          setProfileImage(freshProfile.photo_url || "");
-        } catch (error) {
-          console.error("Erreur lors du chargement du profil:", error);
-          Alert.alert("Erreur", "Impossible de charger le profil.");
-        } finally {
-          setLoading(false);
+    const loadProfile = async () => {
+      try {
+        const cachedProfile = await getUserProfile();
+        if (cachedProfile) {
+          setUserProfile(cachedProfile);
+          setName(cachedProfile.name || "");
+          setBio(cachedProfile.bio || "");
+          setProfileImage(cachedProfile.photoUrl || "");
         }
-      };
-      loadProfile();
-    }, []);
+
+        const freshProfile = await fetchUserProfile();
+        setUserProfile(freshProfile);
+        setName(freshProfile.name || "");
+        setBio(freshProfile.bio || "");
+        setProfileImage(freshProfile.photoUrl || "");
+      } catch (error) {
+        console.error("Erreur lors du chargement du profil:", error);
+        toast.error("Impossible de charger le profil.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, []);
 
   const handleBack = () => {
     router.replace("/(tabs)/profile");
@@ -82,7 +82,7 @@ export default function UpdateProfileScreen() {
       const photoChanged = newPhotoUri !== null;
 
       if (!nameChanged && !photoChanged && !bioChanged) {
-        Alert.alert("Info", "Aucune modification détectée");
+        toast.info("Aucune modification détectée");
         setSaving(false);
         return;
       }
@@ -94,7 +94,7 @@ export default function UpdateProfileScreen() {
         try {
           photoUrl = await uploadProfilePhoto(newPhotoUri);
         } catch (uploadError) {
-          Alert.alert("Erreur", "Impossible d'uploader la photo.");
+          toast.error("Impossible d'uploader la photo.");
           setUploadingPhoto(false);
           setSaving(false);
           return;
@@ -109,11 +109,10 @@ export default function UpdateProfileScreen() {
 
       await updateProfile(updates);
 
-      Alert.alert("Succès", "Profil mis à jour avec succès", [
-        { text: "OK", onPress: () => router.replace("/(tabs)/profile") }
-      ]);
+      toast.success("Profil mis à jour avec succès");
+      router.replace("/(tabs)/profile");
     } catch (error: any) {
-      Alert.alert("Erreur", error.message || "Impossible de mettre à jour le profil");
+      toast.error(error.message || "Impossible de mettre à jour le profil");
     } finally {
       setSaving(false);
     }
@@ -125,10 +124,11 @@ export default function UpdateProfileScreen() {
 
   const handleChangePhoto = async () => {
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
       if (permissionResult.granted === false) {
-        Alert.alert("Permission refusée", "Vous devez autoriser l'accès à la galerie.");
+        toast.warning("Vous devez autoriser l'accès à la galerie.");
         return;
       }
 
@@ -145,19 +145,19 @@ export default function UpdateProfileScreen() {
         setNewPhotoUri(selectedUri);
       }
     } catch (error) {
-      Alert.alert("Erreur", "Une erreur est survenue lors de la sélection de l'image.");
+      toast.error("Une erreur est survenue lors de la sélection de l'image.");
     }
-    };
+  };
 
-    if (loading) {
-      return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-          <PageHeader title="Profil" onBack={handleBack} />
-          <View style={styles.loadingContainer}>
-            <Text style={{ color: theme.textMuted }}>Chargement...</Text>
-          </View>
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <PageHeader title="Profil" onBack={handleBack} />
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: theme.textMuted }}>Chargement...</Text>
         </View>
-      );
+      </View>
+    );
   }
 
   if (!userProfile) {
@@ -183,7 +183,11 @@ export default function UpdateProfileScreen() {
               style={[styles.avatar, Shadows.dp4]}
             />
             <TouchableOpacity
-              style={[styles.photoButton, { backgroundColor: theme.primary }, Shadows.dp2]}
+              style={[
+                styles.photoButton,
+                { backgroundColor: theme.primary },
+                Shadows.dp2,
+              ]}
               onPress={handleChangePhoto}
             >
               <Ionicons name="camera" size={20} color="white" />
@@ -192,16 +196,23 @@ export default function UpdateProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>À propos</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            À propos
+          </Text>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Nom d'utilisateur</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Nom d'utilisateur
+            </Text>
             <TextInput
-              style={[styles.input, { 
-                borderColor: "#ccc",
-                color: theme.text,
-                backgroundColor: theme.background 
-              }]}
+              style={[
+                styles.input,
+                {
+                  borderColor: "#ccc",
+                  color: theme.text,
+                  backgroundColor: theme.background,
+                },
+              ]}
               value={name}
               onChangeText={setName}
               placeholder="Entrez votre nom"
@@ -212,11 +223,15 @@ export default function UpdateProfileScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
             <TextInput
-              style={[styles.input, styles.textArea, { 
-                borderColor: "#ccc",
-                color: theme.text,
-                backgroundColor: theme.background 
-              }]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  borderColor: "#ccc",
+                  color: theme.text,
+                  backgroundColor: theme.background,
+                },
+              ]}
               value={bio}
               onChangeText={setBio}
               placeholder="Parlez-nous de vous"
@@ -232,14 +247,16 @@ export default function UpdateProfileScreen() {
             style={[styles.cancelButton, { borderColor: "#ccc" }]}
             onPress={handleCancel}
           >
-            <Text style={[styles.cancelButtonText, { color: theme.text }]}>Annuler</Text>
+            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
+              Annuler
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
-              styles.saveButton, 
+              styles.saveButton,
               { backgroundColor: theme.primary },
-              saving && { opacity: 0.6 }
+              saving && { opacity: 0.6 },
             ]}
             onPress={handleSave}
             disabled={saving}
