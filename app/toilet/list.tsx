@@ -1,59 +1,61 @@
 import { MapFilters } from "@/components/map/MapFilters";
 import { MapSearchBar } from "@/components/map/MapSearchBar";
 import { ToiletListView } from "@/components/map/ToiletListView";
-import { useMapScreenViewModel } from "@/features/map/useMapScreenViewModel";
+import { useToiletListViewModel } from "@/features/toilet/useToiletListViewModel";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ToiletListScreen() {
-  const {
-    theme,
-    filterFree,
-    setFilterFree,
-    filterAccessible,
-    setFilterAccessible,
-    filterOpenNow,
-    setFilterOpenNow,
-    searchQuery,
-    setSearchQuery,
-    filteredToilets,
-    userLocation,
-    handlePressToilet,
-  } = useMapScreenViewModel();
+  const toiletListViewModel = useToiletListViewModel();
 
   const router = useRouter();
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[
+        styles.container,
+        { backgroundColor: toiletListViewModel.theme.background },
+      ]}
     >
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: toiletListViewModel.theme.text },
+          ]}
+        >
           Toilettes à proximité
         </Text>
       </View>
 
       {/*Search bar */}
-      <MapSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+      <MapSearchBar
+        value={toiletListViewModel.searchQuery}
+        onChangeText={toiletListViewModel.setSearchQuery}
+      />
 
       {/* Filters */}
       <MapFilters
-        filterFree={filterFree}
-        filterAccessible={filterAccessible}
-        filterOpenNow={filterOpenNow}
-        onToggleFree={() => setFilterFree((prev) => !prev)}
-        onToggleAccessible={() => setFilterAccessible((prev) => !prev)}
-        onToggleOpenNow={() => setFilterOpenNow((prev) => !prev)}
+        filterFree={toiletListViewModel.filterFree}
+        filterAccessible={toiletListViewModel.filterAccessible}
+        filterOpenNow={toiletListViewModel.filterOpenNow}
+        onToggleFree={() => toiletListViewModel.setFilterFree((prev) => !prev)}
+        onToggleAccessible={() =>
+          toiletListViewModel.setFilterAccessible((prev) => !prev)
+        }
+        onToggleOpenNow={() =>
+          toiletListViewModel.setFilterOpenNow((prev) => !prev)
+        }
       />
 
       {/* List full pagee */}
       <View style={styles.listWrapper}>
         <ToiletListView
-          toilets={filteredToilets}
-          userLocation={userLocation}
-          onPressToilet={handlePressToilet}
+          toilets={toiletListViewModel.filteredToilets}
+          userLocation={toiletListViewModel.userLocation}
+          onPressToilet={toiletListViewModel.handlePressToilet}
         />
       </View>
 

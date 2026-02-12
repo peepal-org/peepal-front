@@ -18,6 +18,9 @@ export const Colors = {
     mapMarker: "#3BAF74", // Marker color on map
     error: "#DC2626", // Error red
     success: "#16A34A", // Success green
+
+    authBackground: "rgba(159, 204, 195, 0.3)",
+    inputBorder: "transparent",
   },
 
   dark: {
@@ -39,6 +42,10 @@ export const Colors = {
     mapMarker: "#52D681",
     error: "#F87171",
     success: "#4ADE80",
+
+    // authBackground: "rgba(159, 204, 195, 0.15)",
+    authBackground: "#121212",
+    inputBorder: "#2D2D2D",
   },
 
   // 🌈 Complementary palette for specific UI elements

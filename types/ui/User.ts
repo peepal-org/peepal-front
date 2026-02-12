@@ -1,7 +1,7 @@
 export type UserRole = "user" | "admin" | "moderator";
 
 export type User = {
-  id: string;
+  id: number;
   name: string;
   email: string;
   createdAt: string; // ISO string

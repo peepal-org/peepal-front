@@ -1,14 +1,8 @@
 import { Colors } from "@/constants/Colors";
-import { apiFetch } from "@/functions/api";
-import { getAddressFromCoords } from "@/utils/geocoding";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAddRestroomViewModel } from "@/features/contribute/useAddRestroomViewModel";
 import { Picker } from "@react-native-picker/picker";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as Location from "expo-location";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,132 +23,9 @@ type Accessibility = "accessible" | "non_accessible" | "inconnue";
 type Opening = "24_7" | "horaires_comm" | "inconnus";
 
 export default function AddRestroomScreen() {
-  const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
-
-  const [address, setAddress] = useState("");
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
-  const [isLocLoading, setIsLocLoading] = useState(false);
-  const [name, setName] = useState("");
-  const [type, setType] = useState<RestroomType>("public");
-  const [accessibility, setAccessibility] = useState<Accessibility>("inconnue");
-  const [opening, setOpening] = useState<Opening>("inconnus");
-  // const [notes, setNotes] = useState("");
-  // const [photoCount, setPhotoCount] = useState(0);
-
-  const queryClient = useQueryClient();
-
-  async function getUserId(): Promise<number> {
-    const raw = await AsyncStorage.getItem("userProfile");
-    if (!raw)
-      throw new Error("Profil utilisateur introuvable. Reconnecte-toi.");
-    const user = JSON.parse(raw);
-    if (!user?.id)
-      throw new Error("ID utilisateur introuvable. Reconnecte-toi.");
-    return Number(user.id);
-  }
-
-  const createToiletMutation = useMutation({
-    mutationFn: async (payload: any) =>
-      apiFetch("/toilets", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["toilets"] });
-      Alert.alert("Toilette ajoutée 🎉", "Merci pour ta contribution.", [
-        { text: "OK", onPress: () => router.replace("/(tabs)/map") },
-      ]);
-    },
-    onError: (err: any) => {
-      Alert.alert(
-        "Erreur",
-        err?.message ?? "Impossible d’ajouter la toilette."
-      );
-    },
-  });
-
-  async function handleSubmit() {
-    if (!name.trim()) {
-      Alert.alert(
-        "Nom manquant",
-        "Merci de donner un nom (ex: WC République)."
-      );
-      return;
-    }
-    if (!address.trim()) {
-      Alert.alert("Adresse manquante", "Merci de renseigner une adresse.");
-      return;
-    }
-    if (latitude == null || longitude == null) {
-      Alert.alert(
-        "Coordonnées manquantes",
-        "Utilise ta position ou renseigne des coordonnées."
-      );
-      return;
-    }
-
-    const userId = await getUserId();
-
-    const opening_hours =
-      opening === "24_7"
-        ? "24/7"
-        : opening === "horaires_comm"
-        ? "Horaires commerciaux"
-        : "Inconnus";
-
-    const payload = {
-      name: name.trim(),
-      address: address.trim(),
-      latitude,
-      longitude,
-      type: type === "public" ? "public" : "private",
-      accessible: accessibility === "accessible",
-      free: true,
-      clean: true,
-      opening_hours,
-      createdBy: userId,
-    };
-
-    createToiletMutation.mutate(payload); // Appel à la mutation pour envoyer les données
-  }
-
-  // Utiliser la position actuelle de l'utilisateur
-  async function handleUseLocation() {
-    try {
-      setIsLocLoading(true);
-
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Localisation refusée",
-          "Nous avons besoin de ta localisation pour pré-remplir l’adresse."
-        );
-        return;
-      }
-
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const { latitude: lat, longitude: lon } = position.coords;
-      setLatitude(lat);
-      setLongitude(lon);
-
-      const addr = await getAddressFromCoords(lat, lon);
-      setAddress(addr);
-    } catch (e) {
-      console.log("handleUseLocation error:", e);
-      Alert.alert(
-        "Erreur",
-        "Impossible de récupérer ta position pour le moment."
-      );
-    } finally {
-      setIsLocLoading(false);
-    }
-  }
+  const addRestRoomViewModel = useAddRestroomViewModel();
 
   return (
     <SafeAreaView
@@ -162,7 +33,7 @@ export default function AddRestroomScreen() {
     >
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={addRestRoomViewModel.goBack}
           style={styles.headerBack}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -178,8 +49,8 @@ export default function AddRestroomScreen() {
         {/* Nom */}
         <Text style={[styles.label, { color: theme.text }]}>Nom</Text>
         <TextInput
-          value={name}
-          onChangeText={setName}
+          value={addRestRoomViewModel.name}
+          onChangeText={addRestRoomViewModel.setName}
           placeholder="Ex : WC République"
           placeholderTextColor={theme.textMuted}
           style={[
@@ -195,8 +66,8 @@ export default function AddRestroomScreen() {
         {/* Adresse */}
         <Text style={[styles.label, { color: theme.text }]}>Adresse</Text>
         <TextInput
-          value={address}
-          onChangeText={setAddress}
+          value={addRestRoomViewModel.address}
+          onChangeText={addRestRoomViewModel.setAddress}
           placeholder="Ex : 15 Rue de la Paix, Paris"
           placeholderTextColor={theme.textMuted}
           style={[
@@ -215,11 +86,11 @@ export default function AddRestroomScreen() {
             styles.locationButton,
             { borderColor: theme.border, backgroundColor: theme.card },
           ]}
-          onPress={handleUseLocation}
-          disabled={isLocLoading}
+          onPress={addRestRoomViewModel.handleUseLocation}
+          disabled={addRestRoomViewModel.isLocLoading}
         >
           <Text style={{ color: theme.primary, fontWeight: "500" }}>
-            {isLocLoading
+            {addRestRoomViewModel.isLocLoading
               ? "Récupération de ta position…"
               : "Utiliser ma position actuelle"}
           </Text>
@@ -230,8 +101,10 @@ export default function AddRestroomScreen() {
           Type de toilettes
         </Text>
         <Picker
-          selectedValue={type}
-          onValueChange={(value) => setType(value as RestroomType)}
+          selectedValue={addRestRoomViewModel.type}
+          onValueChange={(value) =>
+            addRestRoomViewModel.setType(value as RestroomType)
+          }
           style={[
             styles.pickerWrapper,
             { backgroundColor: theme.card, borderColor: theme.border },
@@ -252,8 +125,10 @@ export default function AddRestroomScreen() {
           Accessibilité
         </Text>
         <Picker
-          selectedValue={accessibility}
-          onValueChange={(value) => setAccessibility(value as Accessibility)}
+          selectedValue={addRestRoomViewModel.accessibility}
+          onValueChange={(value) =>
+            addRestRoomViewModel.setAccessibility(value as Accessibility)
+          }
           style={[
             styles.pickerWrapper,
             { backgroundColor: theme.card, borderColor: theme.border },
@@ -272,8 +147,10 @@ export default function AddRestroomScreen() {
           Horaires d’ouverture
         </Text>
         <Picker
-          selectedValue={opening}
-          onValueChange={(value) => setOpening(value as Opening)}
+          selectedValue={addRestRoomViewModel.opening}
+          onValueChange={(value) =>
+            addRestRoomViewModel.setOpening(value as Opening)
+          }
           style={[
             styles.pickerWrapper,
             { backgroundColor: theme.card, borderColor: theme.border },
@@ -290,7 +167,7 @@ export default function AddRestroomScreen() {
         {/* Bouton Submit */}
         <TouchableOpacity
           style={[styles.submitButton, { backgroundColor: theme.primary }]}
-          onPress={handleSubmit}
+          onPress={addRestRoomViewModel.handleSubmit}
         >
           <Text style={styles.submitButtonText}>Valider l’ajout</Text>
         </TouchableOpacity>
