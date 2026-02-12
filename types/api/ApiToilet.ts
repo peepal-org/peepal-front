@@ -14,3 +14,10 @@ export type ApiToilet = {
   createdAt: string;
   createdBy?: ApiUser | { id: number } | null;
 };
+
+export type CreateToiletPayload = Omit<
+  ApiToilet,
+  "id" | "createdAt" | "createdBy"
+> & {
+  createdBy: number;
+};

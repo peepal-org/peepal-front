@@ -1,19 +1,10 @@
 import { Colors } from "@/constants/Colors";
 import { DEFAULT_TOILET_IMAGE, DEFAULT_USER_AVATAR } from "@/constants/Images";
-import { fetchComments } from "@/functions/api/comments";
-import { fetchToiletById } from "@/functions/api/toilet";
-import { mapApiComment } from "@/functions/mappers/comments";
-import { mapApiToilet } from "@/functions/mappers/toilet";
-import { Toilet } from "@/types/ui/Toilet";
-import { getAddressFromCoords } from "@/utils/geocoding";
-import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useToiletDetailViewModel } from "@/features/toilet/useToiletDetailViewModel";
+import React from "react";
 
 import {
   Image,
-  Linking,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,74 +14,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-function openInExternalMaps(toilet: Toilet) {
-  const lat = toilet.latitude;
-  const lon = toilet.longitude;
-  const label = encodeURIComponent(toilet.name);
-
-  if (Platform.OS === "ios") {
-    Linking.openURL(`http://maps.apple.com/?ll=${lat},${lon}&q=${label}`);
-    return;
-  }
-  Linking.openURL(`geo:${lat},${lon}?q=${lat},${lon}(${label})`);
-}
-
 export default function ToiletDetailsScreen() {
-  const { id } = useLocalSearchParams();
-  const router = useRouter();
+  const toiletViewModel = useToiletDetailViewModel();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
 
-  const [address, setAddress] = useState("Chargement de l'adresse…");
-
-  const toiletIdNum = Number(id);
-
-  const { data: apiToilet, isLoading: toiletLoading } = useQuery({
-    queryKey: ["toilets", toiletIdNum],
-    queryFn: () => fetchToiletById(toiletIdNum),
-    enabled: Number.isFinite(toiletIdNum),
-  });
-
-  const toilet: Toilet | undefined = apiToilet
-    ? mapApiToilet(apiToilet)
-    : undefined;
-
-  const { data: toiletComments = [] } = useQuery({
-    queryKey: ["comments", toiletIdNum],
-    queryFn: fetchComments,
-    enabled: Number.isFinite(toiletIdNum),
-    select: (apiComments) =>
-      apiComments
-        .filter((c) => c.toilet?.id === toiletIdNum)
-        .map(mapApiComment),
-  });
-
-  const ratingCount = toiletComments.length;
-  const averageRating =
-    ratingCount === 0
-      ? null
-      : toiletComments.reduce((sum, c) => sum + c.rating, 0) / ratingCount;
-
-  const lat = toilet?.latitude;
-  const lon = toilet?.longitude;
-
-  useEffect(() => {
-    if (lat == null || lon == null) return;
-
-    let cancelled = false;
-
-    (async () => {
-      const addr = await getAddressFromCoords(lat, lon);
-      if (!cancelled) setAddress(addr);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [lat, lon]);
-
   // Loader simple
-  if (toiletLoading) {
+  if (toiletViewModel.isLoading) {
     return (
       <SafeAreaView
         style={[styles.center, { backgroundColor: theme.background }]}
@@ -100,7 +30,7 @@ export default function ToiletDetailsScreen() {
     );
   }
 
-  if (!toilet) {
+  if (!toiletViewModel.toilet) {
     return (
       <SafeAreaView
         style={[styles.center, { backgroundColor: theme.background }]}
@@ -113,7 +43,7 @@ export default function ToiletDetailsScreen() {
             styles.secondaryButton,
             { backgroundColor: theme.card, borderColor: theme.border },
           ]}
-          onPress={() => router.back()}
+          onPress={toiletViewModel.goBack}
         >
           <Text
             style={[styles.secondaryButtonText, { color: theme.textMuted }]}
@@ -125,9 +55,9 @@ export default function ToiletDetailsScreen() {
     );
   }
 
-  const isOpen = toilet.isOpen ?? true;
-  const hoursLabel = toilet.openingHours ?? "Horaires inconnus";
-  const accessibilityLabel = toilet.accessible
+  const isOpen = toiletViewModel.toilet.isOpen ?? true;
+  const hoursLabel = toiletViewModel.toilet.openingHours ?? "Horaires inconnus";
+  const accessibilityLabel = toiletViewModel.toilet.accessible
     ? "Accessible UFR"
     : "Non accessible";
 
@@ -137,7 +67,7 @@ export default function ToiletDetailsScreen() {
     >
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={toiletViewModel.goBack}
           style={styles.headerBack}
         >
           <Text style={[styles.headerBackIcon, { color: theme.text }]}>←</Text>
@@ -150,22 +80,22 @@ export default function ToiletDetailsScreen() {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <Image
-          source={{ uri: toilet.image ?? DEFAULT_TOILET_IMAGE }}
+          source={{ uri: toiletViewModel.toilet.image ?? DEFAULT_TOILET_IMAGE }}
           style={styles.image}
         />
 
         <View style={styles.mainInfo}>
           <Text style={[styles.toiletName, { color: theme.text }]}>
-            {toilet.name}
+            {toiletViewModel.toilet.name}
           </Text>
           <Text style={[styles.toiletAddress, { color: theme.textMuted }]}>
-            {address}
+            {toiletViewModel.address}
           </Text>
 
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               style={[styles.goButton, { backgroundColor: theme.primary }]}
-              onPress={() => openInExternalMaps(toilet)}
+              onPress={toiletViewModel.openInMaps}
             >
               <Text style={[styles.goButtonText, { color: theme.card }]}>
                 Y aller 🧭
@@ -173,7 +103,7 @@ export default function ToiletDetailsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.goButton, { backgroundColor: theme.error }]}
-              onPress={() => router.push({ pathname: '/contribute/report-issue', params: { toiletId: toiletIdNum } })}
+              onPress={toiletViewModel.goToReport}
             >
               <Text style={[styles.goButtonText, { color: theme.card }]}>
                 Signaler ⚠️
@@ -222,7 +152,7 @@ export default function ToiletDetailsScreen() {
               Avis & commentaires
             </Text>
             <TouchableOpacity
-              onPress={() => router.push(`/toilet/${toilet.id}/rate`)}
+              onPress={toiletViewModel.goToRate}
               style={styles.rateButton}
             >
               <Text style={[styles.rateButtonText, { color: theme.primary }]}>
@@ -231,7 +161,7 @@ export default function ToiletDetailsScreen() {
             </TouchableOpacity>
           </View>
 
-          {ratingCount === 0 ? (
+          {toiletViewModel.ratingCount === 0 ? (
             <View style={{ marginTop: 12 }}>
               <Text style={{ color: theme.textMuted, fontSize: 14 }}>
                 Pas encore d’avis pour ces toilettes.
@@ -245,14 +175,14 @@ export default function ToiletDetailsScreen() {
               <View style={styles.ratingSummaryRow}>
                 <View style={styles.ratingScoreColumn}>
                   <Text style={[styles.ratingAverage, { color: theme.text }]}>
-                    {averageRating!.toFixed(1)}
+                    {toiletViewModel.averageRating!.toFixed(1)}
                   </Text>
                   <View style={styles.starsRow}>
                     {Array.from({ length: 5 }).map((_, index) => {
                       const starValue = index + 1;
                       const filled =
-                        averageRating !== null &&
-                        starValue <= Math.round(averageRating);
+                        toiletViewModel.averageRating !== null &&
+                        starValue <= Math.round(toiletViewModel.averageRating);
                       return (
                         <Text
                           key={starValue}
@@ -267,12 +197,12 @@ export default function ToiletDetailsScreen() {
                     })}
                   </View>
                   <Text style={{ color: theme.textMuted, fontSize: 13 }}>
-                    {ratingCount} avis
+                    {toiletViewModel.ratingCount} avis
                   </Text>
                 </View>
               </View>
 
-              {toiletComments.map((review) => (
+              {toiletViewModel.comments.map((review) => (
                 <View key={review.id} style={styles.reviewCard}>
                   <View style={styles.reviewHeaderRow}>
                     <View style={styles.reviewAvatar}>

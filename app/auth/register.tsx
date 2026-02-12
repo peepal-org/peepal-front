@@ -22,7 +22,7 @@ export default function Register() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.background }]}
+      style={[styles.safeArea, { backgroundColor: theme.authBackground }]}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -46,7 +46,7 @@ export default function Register() {
           <View
             style={[
               styles.inputContainer,
-              { backgroundColor: theme.card, borderColor: theme.border },
+              { backgroundColor: theme.card, borderColor: theme.inputBorder },
             ]}
           >
             <Ionicons
@@ -156,7 +156,7 @@ export default function Register() {
             Déjà un compte ?
           </Text>
           <TouchableOpacity
-            onPress={() => registerViewModel.goToLogin}
+            onPress={() => registerViewModel.goToLogin()}
             disabled={registerViewModel.isLoading}
           >
             <Text style={[styles.footerLink, { color: theme.primary }]}>

@@ -1,3 +1,5 @@
+import { Statut } from "../Statut";
+
 export type Toilet = {
   id: string;
   name: string;
@@ -11,4 +13,5 @@ export type Toilet = {
   type?: string;
   image?: string;
   isOpen?: boolean;
+  statut: Statut;
 };

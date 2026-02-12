@@ -22,7 +22,7 @@ export default function Login() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.background }]}
+      style={[styles.safeArea, { backgroundColor: theme.authBackground }]}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -46,7 +46,7 @@ export default function Login() {
           <View
             style={[
               styles.inputContainer,
-              { backgroundColor: theme.card, borderColor: theme.border },
+              { backgroundColor: theme.card, borderColor: theme.inputBorder },
             ]}
           >
             <Ionicons
@@ -131,7 +131,7 @@ export default function Login() {
             Pas encore de compte ?
           </Text>
           <TouchableOpacity
-            onPress={() => loginViewModel.goToRegister}
+            onPress={() => loginViewModel.goToRegister()}
             disabled={loginViewModel.isLoading}
           >
             <Text style={[styles.footerLink, { color: theme.primary }]}>
