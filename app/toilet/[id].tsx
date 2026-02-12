@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { DEFAULT_TOILET_IMAGE, DEFAULT_USER_AVATAR } from "@/constants/Images";
-import { fetchComments } from "@/functions/api/comments";
-import { fetchToiletById, updateToilet } from "@/functions/api/toilet";
+import { fetchComments, deleteComment } from "@/functions/api/comments";
+import { fetchToiletById, updateToilet, deleteToilet } from "@/functions/api/toilet";
 import { mapApiComment } from "@/functions/mappers/comments";
 import { mapApiToilet } from "@/functions/mappers/toilet";
 import { Toilet } from "@/types/ui/Toilet";
@@ -24,6 +24,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getUserProfile } from "@/auth/authService";
 import type { ApiUser } from "@/types/api/ApiUser";
+import { Ionicons } from "@expo/vector-icons";
 
 function openInExternalMaps(toilet: Toilet) {
   const lat = toilet.latitude;
@@ -141,6 +142,30 @@ export default function ToiletDetailsScreen() {
     }
   };
 
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      await deleteComment(commentId);
+      queryClient.invalidateQueries({ queryKey: ["comments", toiletIdNum] });
+      Alert.alert("Succès", "Commentaire supprimé avec succès");
+    } catch (error) {
+      Alert.alert("Erreur", "Une erreur s'est produite lors de la suppression");
+    }
+  };
+
+  const handleDeleteToilet = async () => {
+    if (!toilet) return;
+
+     try {
+      await deleteToilet(toilet.id);
+            queryClient.invalidateQueries({ queryKey: ["toilets"] });
+            Alert.alert("Succès", "Toilettes supprimé avec succès");
+            router.back();
+    } catch (error) {
+      Alert.alert("Erreur", "Une erreur s'est produite lors de la suppression");
+    }
+
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
@@ -177,11 +202,106 @@ export default function ToiletDetailsScreen() {
           </View>
         </View>
 
-        {/* Section des commentaires */}
+        {userProfile?.type === "admin" && (
+          <View style={styles.adminButtonsContainer}>
+
+            {toilet?.status === "waiting" && (
+              <>
+                <TouchableOpacity
+                  style={[styles.adminButton, { backgroundColor: "red" }]}
+                  onPress={() => {
+                    Alert.alert(
+                      "Rejeter les toilettes",
+                      "Voulez-vous vraiment rejeter ces toilettes ?",
+                      [
+                        { text: "Annuler", style: "cancel" },
+                        {
+                          text: "Rejeter",
+                          style: "destructive",
+                          onPress: () => {
+                            handleUpdateStatus("rejected");
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.adminButtonText}>Rejeter</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.adminButton, { backgroundColor: "green" }]}
+                  onPress={() => {
+                    Alert.alert(
+                      "Accepter les toilettes",
+                      "Voulez-vous vraiment accepter ces toilettes ?",
+                      [
+                        { text: "Annuler", style: "cancel" },
+                        {
+                          text: "Accepter",
+                          style: "destructive",
+                          onPress: () => {
+                            handleUpdateStatus("accepted");
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.adminButtonText}>Accepter</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <TouchableOpacity
+              style={[styles.adminButton, { backgroundColor: "#888" }]}
+              onPress={() => {
+                Alert.alert(
+                  "Supprimer les toilettes",
+                  "Voulez-vous vraiment supprimer ces toilettes ?",
+                  [
+                    { text: "Annuler", style: "cancel" },
+                    {
+                      text: "Supprimer",
+                      style: "destructive",
+                      onPress: () => {
+                        handleDeleteToilet();
+                      },
+                    },
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.adminButtonText}>Supprimer</Text>
+            </TouchableOpacity>
+
+          </View>
+        )}
+
+
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Avis & commentaires</Text>
+            <View style={styles.ratingsHeaderRow}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Avis & commentaires
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push(`/toilet/${toilet.id}/rate`)}
+                style={styles.rateButton}
+              >
+                <Text style={[styles.rateButtonText, { color: theme.primary }]}>
+                  Noter ces toilettes
+                </Text>
+              </TouchableOpacity>
+            </View>
           {ratingCount === 0 ? (
-            <Text style={{ color: theme.textMuted, fontSize: 14, marginTop: 12 }}>Pas encore d'avis pour ces toilettes.</Text>
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: theme.textMuted, fontSize: 14 }}>
+                Pas encore d’avis pour ces toilettes.
+              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 14 }}>
+                Sois le·la premier·ère à partager ton expérience !
+              </Text>
+            </View>
           ) : (
             <>
               <View style={styles.ratingSummaryRow}>
@@ -207,33 +327,34 @@ export default function ToiletDetailsScreen() {
                       })}
                     </View>
                   </View>
-                  <Text style={[styles.reviewText, { color: theme.text }]}>{review.content}</Text>
+                  
+                  <View style={styles.commentTextContainer}>
+                    <Text style={[styles.reviewText, { color: theme.text, flex: 1 }]}>{review.content}</Text>
+                    {userProfile?.type === "admin" && (
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => {
+                          Alert.alert(
+                            "Supprimer le commentaire",
+                            "Voulez-vous vraiment supprimer ce commentaire ?",
+                            [
+                              { text: "Annuler", style: "cancel" },
+                              { text: "Supprimer", style: "destructive", onPress: () => {
+                                handleDeleteComment(review.id);
+                              }},
+                            ]
+                          );
+                        }}
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#ff4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               ))}
             </>
           )}
         </View>
-
-        {/* Boutons admin */}
-        {userProfile?.type === "admin" && (
-          <View style={styles.adminButtonsContainer}>
-            <TouchableOpacity
-              style={[styles.adminButton, { backgroundColor: "#ff4444" }]}
-              onPress={() => handleUpdateStatus("rejected")}
-            >
-              <Text style={styles.adminButtonText}>Rejeter</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.adminButton, { backgroundColor: "#4CAF50" }]}
-              onPress={() => handleUpdateStatus("accepted")}
-            >
-              <Text style={styles.adminButtonText}>Accepter</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.adminButton, { backgroundColor: "#888" }]}>
-              <Text style={styles.adminButtonText}>Supprimer</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -273,4 +394,10 @@ const styles = StyleSheet.create({
   reviewAvatarImage: { width: 36, height: 36, borderRadius: 18 },
   starSmall: { fontSize: 14 },
   ratingSummaryRow: { marginVertical: 8 },
+  commentTextContainer: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  deleteButton: { paddingTop: 2 },ratingsHeaderRow: {flexDirection: "row",alignItems: "center",justifyContent: "space-between",},
+  rateButton: {paddingHorizontal: 10,paddingVertical: 6,borderRadius: 999,backgroundColor: "rgba(0,0,0,0.03)",},
+  rateButtonText: { fontSize: 13, fontWeight: "500" },
+  ratingScoreColumn: { flexDirection: "column", alignItems: "flex-start" },
+  ratingAverage: { fontSize: 28, fontWeight: "700" },
 });

@@ -10,9 +10,18 @@ export function fetchToiletById(id: number) {
   return apiFetch<ApiToilet>(`/toilets/${id}`);
 }
 
-export function updateToilet(id: number, data: Partial<Pick<ApiToilet, "status">>) {
+export function updateToilet(
+  id: number,
+  data: Partial<Pick<ApiToilet, "status">>
+) {
   return apiFetch<ApiToilet>(`/toilets/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
+  });
+}
+
+export function deleteToilet(id: number) {
+  return apiFetch<void>(`/toilets/${id}`, {
+    method: "DELETE",
   });
 }

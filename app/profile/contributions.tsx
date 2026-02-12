@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, SectionList, FlatList, StyleSheet, Image } from "react-native";
+import { View, Text, TouchableOpacity, SectionList, FlatList, StyleSheet, Image, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import PageHeader from "../../components/header";
 import { Statut } from "../../types/Statut";
@@ -33,33 +33,54 @@ export default function ContributionsScreen() {
     loadProfile();
   }, []);
 
-  const { data: userComments = [] } = useQuery({
-    queryKey: ["userComments", userProfile?.id, userProfile?.type],
+  // Déterminer le scope (personal ou all) depuis les paramètres
+  const scope = (params.scope as string) || "personal";
+
+  // Contributions personnelles
+  const { data: myComments = [] } = useQuery({
+    queryKey: ["myComments", userProfile?.id],
     queryFn: fetchComments,
     select: (apiComments) => {
-      if (userProfile?.type === "admin") {
-        return apiComments.map(mapApiComment);
-      }
       return apiComments
         .filter((comment) => comment.user.id === userProfile?.id)
         .map(mapApiComment);
     },
-    enabled: !!userProfile,
+    enabled: !!userProfile && scope === "personal",
   });
 
-  const { data: userToilets = [] } = useQuery({
-    queryKey: ["userToilets", userProfile?.id, userProfile?.type],
+  const { data: myToilets = [] } = useQuery({
+    queryKey: ["myToilets", userProfile?.id],
     queryFn: fetchToilets,
     select: (apiToilets) => {
-      if (userProfile?.type === "admin") {
-        return apiToilets.map(mapApiToilet);
-      }
       return apiToilets
         .filter((toilet) => toilet.createdBy?.id === userProfile?.id)
         .map(mapApiToilet);
     },
-    enabled: !!userProfile,
+    enabled: !!userProfile && scope === "personal",
   });
+
+  // Toutes les contributions (pour les admins uniquement)
+  const { data: allComments = [] } = useQuery({
+    queryKey: ["allComments"],
+    queryFn: fetchComments,
+    select: (apiComments) => {
+      return apiComments.map(mapApiComment);
+    },
+    enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
+  });
+
+  const { data: allToilets = [] } = useQuery({
+    queryKey: ["allToilets"],
+    queryFn: fetchToilets,
+    select: (apiToilets) => {
+      return apiToilets.map(mapApiToilet);
+    },
+    enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
+  });
+
+  // Sélectionner les bonnes données selon le scope
+  const userComments = scope === "all" ? allComments : myComments;
+  const userToilets = scope === "all" ? allToilets : myToilets;
 
   const data = {
     commentaires: userComments,
@@ -149,67 +170,41 @@ export default function ContributionsScreen() {
   );
 
   const renderCommentItem = (comment: Comment) => (
-  <TouchableOpacity
-    style={styles.item}
-    onPress={() => router.push(`/toilet/${comment.toiletId}`)}
-  >
-    <Image source={{ uri: comment.user.photoUrl || DEFAULT_USER_AVATAR }} style={styles.image} />
-    <View style={styles.itemContent}>
-      <View style={styles.commentHeader}>
-        <Text style={styles.title}>{comment.user.name}</Text>
-        <Text style={styles.dateLabel}>{comment.dateLabel}</Text>
-      </View>
-
-      {userProfile?.type === "admin" && (
-        <View style={styles.trashContainer}>
-          <TouchableOpacity
-            onPress={(event) => {
-              event.stopPropagation(); // ← empêche la redirection vers la page du toilette
-              Alert.alert(
-                "Supprimer le commentaire",
-                "Voulez vous vraiment supprimer le commentaire ?",
-                [
-                  { text: "Annuler", style: "cancel" },
-                  { text: "Oui", onPress: () => {} },
-                ]
-              );
-            }}
-          >
-            <Ionicons name="trash-outline" size={20} color="#ff4444" />
-          </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.item}
+      onPress={() => router.push(`/toilet/${comment.toiletId}`)}
+    >
+      <Image source={{ uri: comment.user.photoUrl || DEFAULT_USER_AVATAR }} style={styles.image} />
+      <View style={styles.itemContent}>
+        <View style={styles.commentHeader}>
+          <Text style={styles.title}>{comment.user.name}</Text>
+          <Text style={styles.dateLabel}>{comment.dateLabel}</Text>
         </View>
-      )}
 
-      <Text style={styles.commentContent} numberOfLines={2}>
-        {comment.content}
-      </Text>
+        <Text style={styles.commentContent} numberOfLines={2}>
+          {comment.content}
+        </Text>
 
-      <View style={styles.ratingContainer}>
-        {Array.from({ length: 5 }).map((_, index) => {
-          const starValue = index + 1;
-          const filled = starValue <= comment.rating;
-          return (
-            <Text
-              key={starValue}
-              style={[styles.ratingStar, { color: filled ? "#FBBF24" : "#ccc" }]}
-            >
-              {filled ? "★" : "☆"}
-            </Text>
-          );
-        })}
-        <Text style={styles.ratingText}>{comment.rating}/5</Text>
+        <View style={styles.ratingContainer}>
+          {Array.from({ length: 5 }).map((_, index) => {
+            const starValue = index + 1;
+            const filled = starValue <= comment.rating;
+            return (
+              <Text
+                key={starValue}
+                style={[styles.ratingStar, { color: filled ? "#FBBF24" : "#ccc" }]}
+              >
+                {filled ? "★" : "☆"}
+              </Text>
+            );
+          })}
+          <Text style={styles.ratingText}>{comment.rating}/5</Text>
+        </View>
       </View>
-    </View>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
 
-  <FlatList
-    data={data[selected]}
-    keyExtractor={(item) => `${selected}-${item.id}`}
-    renderItem={selected === "commentaires" ? ({ item }) => renderCommentItem(item) : undefined}
-  />
-
-  const toiletSections = userProfile?.type === "admin"
+  const toiletSections = userProfile?.type === "admin" && scope === "all"
     ? [
         { title: "En attente", data: userToilets.filter((t) => t.status === "waiting") },
         { title: "Rejetés", data: userToilets.filter((t) => t.status === "rejected") },
@@ -217,12 +212,15 @@ export default function ContributionsScreen() {
       ].filter(section => section.data.length > 0)
     : [{ title: "", data: userToilets }];
 
+  // Titre dynamique selon le scope
+  const pageTitle = scope === "all" ? "Contributions (tous les utilisateurs)" : "Mes contributions";
+
   return (
     <View style={styles.container}>
       <PageHeader title="Profile" onBack={handleBack} />
 
       <View style={styles.content}>
-        <Text style={styles.header}>Contributions</Text>
+        <Text style={styles.header}>{pageTitle}</Text>
 
         <FlatList
           data={tabs}

@@ -16,3 +16,9 @@ export function createComment(payload: {
     body: JSON.stringify(payload),
   });
 }
+
+export function deleteComment(commentId: number) {
+  return apiFetch<void>(`/comments/${commentId}`, {
+    method: "DELETE",
+  });
+}

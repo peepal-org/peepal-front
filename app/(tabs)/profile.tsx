@@ -57,22 +57,17 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       loadProfile();
-      queryClient.invalidateQueries({ queryKey: ["userComments"] });
-      queryClient.invalidateQueries({ queryKey: ["userToilets"] });
-      queryClient.invalidateQueries({ queryKey: ["adminOwnComments"] });
-      queryClient.invalidateQueries({ queryKey: ["adminOwnToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["myComments"] });
+      queryClient.invalidateQueries({ queryKey: ["myToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["allComments"] });
+      queryClient.invalidateQueries({ queryKey: ["allToilets"] });
     }, [])
   );
 
-  const { data: commentsData = [] } = useQuery({
-    queryKey: ["userComments", userProfile?.id, userProfile?.type],
+  const { data: myCommentsData = [] } = useQuery({
+    queryKey: ["myComments", userProfile?.id],
     queryFn: fetchComments,
     select: (apiComments) => {
-
-      if (userProfile?.type === "admin") {
-        return apiComments;
-      }
-
       return apiComments.filter(
         (comment) => comment.user.id === userProfile?.id
       );
@@ -80,15 +75,10 @@ export default function ProfileScreen() {
     enabled: !!userProfile,
   });
 
-  const { data: toiletsData = [] } = useQuery({
-    queryKey: ["userToilets", userProfile?.id, userProfile?.type],
+  const { data: myToiletsData = [] } = useQuery({
+    queryKey: ["myToilets", userProfile?.id],
     queryFn: fetchToilets,
     select: (apiToilets) => {
-
-      if (userProfile?.type === "admin") {
-        return apiToilets;
-      }
-
       return apiToilets.filter(
         (toilet) => toilet.createdBy?.id === userProfile?.id
       );
@@ -96,75 +86,69 @@ export default function ProfileScreen() {
     enabled: !!userProfile,
   });
 
-  // Queries spécifiques pour les contributions personnelles de l'admin
-  const { data: adminOwnCommentsData = [] } = useQuery({
-    queryKey: ["adminOwnComments", userProfile?.id],
+  const { data: allCommentsData = [] } = useQuery({
+    queryKey: ["allComments"],
     queryFn: fetchComments,
-    select: (apiComments) => {
-      return apiComments.filter(
-        (comment) => comment.user.id === userProfile?.id
-      );
-    },
     enabled: !!userProfile && userProfile?.type === "admin",
   });
 
-  const { data: adminOwnToiletsData = [] } = useQuery({
-    queryKey: ["adminOwnToilets", userProfile?.id],
+  const { data: allToiletsData = [] } = useQuery({
+    queryKey: ["allToilets"],
     queryFn: fetchToilets,
-    select: (apiToilets) => {
-      return apiToilets.filter(
-        (toilet) => toilet.createdBy?.id === userProfile?.id
-      );
-    },
     enabled: !!userProfile && userProfile?.type === "admin",
   });
 
-  const commentsCount = commentsData.length;
-  const toiletsCount = toiletsData.length;
+  const myCommentsCount = myCommentsData.length;
+  const myToiletsCount = myToiletsData.length;
   
-  // Compteurs pour les contributions personnelles de l'admin
-  const adminOwnCommentsCount = adminOwnCommentsData.length;
-  const adminOwnToiletsCount = adminOwnToiletsData.length;
+  const allCommentsCount = allCommentsData.length;
+  const allToiletsCount = allToiletsData.length;
 
-  const contributionItems = [
+  const myContributionItems = [
     {
-      id: "toilettes",
+      id: "mes-toilettes",
       icon: "location-outline" as keyof typeof Ionicons.glyphMap,
       title: "Toilettes ajoutés",
-      subtitle: toiletsCount.toString(),
-      route: "/profile/contributions?tab=ajoute",
+      subtitle: myToiletsCount.toString(),
+      route: "/profile/contributions?tab=ajoute&scope=personal",
     },
     {
-      id: "commentaires",
+      id: "mes-commentaires",
       icon: "star-outline" as keyof typeof Ionicons.glyphMap,
       title: "Commentaires",
-      subtitle: commentsCount.toString(),
-      route: "/profile/contributions?tab=commentaires",
+      subtitle: myCommentsCount.toString(),
+      route: "/profile/contributions?tab=commentaires&scope=personal",
     },
     {
       id: "signalements",
       icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
       title: "Signalements",
       subtitle: "20",
-      route: "/profile/contributions?tab=signalements",
+      route: "/profile/contributions?tab=signalements&scope=personal",
     },
   ];
 
-  // Section "Mes contributions" pour les admins
-  const myContributionItems = [
+  const allContributionItems = [
     {
-      id: "mes-toilettes",
+      id: "all-toilettes",
       icon: "location-outline" as keyof typeof Ionicons.glyphMap,
-      title: "Mes toilettes ajoutés",
-      subtitle: adminOwnToiletsCount.toString(),
-      route: "/profile/contributions?tab=ajoute",
+      title: "Toilettes ajoutés",
+      subtitle: allToiletsCount.toString(),
+      route: "/profile/contributions?tab=ajoute&scope=all",
     },
     {
-      id: "mes-commentaires",
+      id: "all-commentaires",
       icon: "star-outline" as keyof typeof Ionicons.glyphMap,
-      title: "Mes commentaires",
-      subtitle: adminOwnCommentsCount.toString(),
-      route: "/profile/contributions?tab=commentaires",
+      title: "Commentaires",
+      subtitle: allCommentsCount.toString(),
+      route: "/profile/contributions?tab=commentaires&scope=all",
+    },
+    {
+      id: "all-signalements",
+      icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Signalements",
+      subtitle: "20",
+      route: "/profile/contributions?tab=signalements&scope=all",
     },
   ];
 
@@ -226,12 +210,6 @@ export default function ProfileScreen() {
           <Text style={[styles.username, { color: theme.text }]}>
             {userProfile.name}
           </Text>
-
-          {userProfile.type === "admin" && (
-            <Text style={[styles.admin, { color: theme.text }]}>
-              Compte admin
-            </Text>
-          )}
           
           <View style={styles.levelPointsContainer}>
             <View style={styles.levelContainer}>
@@ -268,7 +246,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.stats}>
           {[
-            { number: commentsCount, label: "Commentaires" },
+            { number: myCommentsCount, label: "Commentaires" },
             { number: 20, label: "Signalements" },
             { number: 3, label: "Badges" },
           ].map((stat, index) => (
@@ -283,14 +261,44 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Section "Mes contributions" - uniquement pour les admins */}
+        {/* Mes contributions - pour tous les utilisateurs */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Mes contributions
+          </Text>
+          <FlatList
+            data={myContributionItems}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.flatList, { backgroundColor: theme.card }]}
+                onPress={() => router.push(item.route as any)}
+              >
+                <View style={[styles.iconContainer]}>
+                  <Ionicons name={item.icon} size={20} color={theme.primary} />
+                </View>
+                <View style={styles.flatListContent}>
+                  <Text style={[styles.flatListTitle, { color: theme.text }]}>
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                    {item.subtitle}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+          />
+        </View>
+
+        {/* Contributions globales - uniquement pour les admins */}
         {userProfile.type === "admin" && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              Mes contributions
+              Contributions (tous les utilisateurs)
             </Text>
             <FlatList
-              data={myContributionItems}
+              data={allContributionItems}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[styles.flatList, { backgroundColor: theme.card }]}
@@ -314,36 +322,6 @@ export default function ProfileScreen() {
             />
           </View>
         )}
-
-        <View style={styles.section}>
-          
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Contributions
-          </Text>
-          <FlatList
-            data={contributionItems}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.flatList, { backgroundColor: theme.card }]}
-                onPress={() => router.push(item.route as any)}
-              >
-                <View style={[styles.iconContainer]}>
-                  <Ionicons name={item.icon} size={20} color={theme.primary} />
-                </View>
-                <View style={styles.flatListContent}>
-                  <Text style={[styles.flatListTitle, { color: theme.text }]}>
-                    {item.title}
-                  </Text>
-                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
-                    {item.subtitle}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-          />
-        </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
