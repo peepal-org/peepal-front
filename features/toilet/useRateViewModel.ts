@@ -1,6 +1,7 @@
 import { getUserProfile } from "@/auth/authService";
 import { useToast } from "@/components/toast/useToast";
 import { createComment } from "@/functions/api/comments";
+import { getErrorMessage } from "@/utils/errorHandler";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -24,9 +25,7 @@ export function useRateViewModel() {
       router.back();
     },
     onError: (err: unknown) => {
-      const message =
-        err instanceof Error ? err.message : "Impossible de publier l'avis.";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Impossible de publier l'avis."));
     },
   });
 
@@ -61,11 +60,7 @@ export function useRateViewModel() {
         content: comment.trim(),
       });
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Impossible de récupérer ton profil.";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Impossible de récupérer ton profil."));
     }
   }, [toiletIdNum, rating, comment, toast, createCommentMutation]);
 

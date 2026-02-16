@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import PageHeader from "../../components/header";
 import { Statut } from "../../types/Statut";
 import { Tab } from "../../types/Tab";
@@ -206,7 +207,7 @@ export default function ContributionsScreen() {
   }, [params.tab]);
 
   const handleBack = () => {
-    router.replace("/(tabs)/profile");
+    router.back();
   };
 
   const renderStatutBuffer = (statut: Statut) => {
@@ -342,7 +343,7 @@ export default function ContributionsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <PageHeader title="Profile" onBack={handleBack} />
 
       <View style={styles.content}>
@@ -372,7 +373,7 @@ export default function ContributionsScreen() {
           renderItem={renderItem}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -61,8 +61,12 @@ export function useToiletDetailViewModel() {
     let cancelled = false;
 
     (async () => {
-      const addr = await getAddressFromCoords(lat, lon);
-      if (!cancelled) setAddress(addr);
+      try {
+        const addr = await getAddressFromCoords(lat, lon);
+        if (!cancelled) setAddress(addr);
+      } catch {
+        if (!cancelled) setAddress("Adresse indisponible");
+      }
     })();
 
     return () => {

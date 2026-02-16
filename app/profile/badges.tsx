@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import PageHeader from "../../components/header";
 import { Badge } from "../../types/Badge";
 
@@ -125,7 +126,7 @@ export default function BadgesScreen() {
   const obtainedBadges = allBadges.filter((b) => b.obtained);
   const unobtainedBadges = allBadges.filter((b) => !b.obtained);
 
-  const handleBack = () => router.replace("/(tabs)/profile");
+  const handleBack = () => router.back();
 
   const renderBadge = (badge: Badge) => (
     <View style={[styles.badgeCard, !badge.obtained && styles.badgeUnobtained]}>
@@ -147,7 +148,7 @@ export default function BadgesScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <PageHeader title="Badges" onBack={handleBack} />
       <ScrollView contentContainerStyle={{ padding: 15, paddingBottom: 40 }}>
         <View style={styles.section}>
@@ -176,7 +177,7 @@ export default function BadgesScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

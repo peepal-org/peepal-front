@@ -6,7 +6,7 @@ export type ApiToilet = {
   address: string;
   latitude: number;
   longitude: number;
-  type: "public" | "private";
+  types: string[];
   accessible: boolean;
   free: boolean;
   clean: boolean;

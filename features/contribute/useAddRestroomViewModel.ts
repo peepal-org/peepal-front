@@ -2,7 +2,8 @@ import { getUserProfile } from "@/auth/authService";
 import { useToast } from "@/components/toast/useToast";
 import { apiFetch } from "@/functions/api";
 import { CreateToiletPayload } from "@/types/api/ApiToilet";
-import { getAddressFromCoords } from "@/utils/geocoding";
+import { getErrorMessage } from "@/utils/errorHandler";
+import { getAddressFromCoords, getCoordsFromAddress } from "@/utils/geocoding";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
@@ -45,11 +46,8 @@ export function useAddRestroomViewModel() {
       router.replace("/(tabs)/map");
     },
     onError: (err: unknown) => {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Impossible d'ajouter la toilette.";
-      toast.error(message);
+      console.log("=== ERREUR CRÉATION TOILETTE ===", err);
+      toast.error(getErrorMessage(err, "Impossible d'ajouter la toilette."));
     },
   });
 
@@ -65,9 +63,20 @@ export function useAddRestroomViewModel() {
       toast.warning("Merci de renseigner une adresse.");
       return;
     }
-    if (latitude == null || longitude == null) {
-      toast.warning("Utilise ta position ou renseigne des coordonnées.");
-      return;
+
+    let lat = latitude;
+    let lon = longitude;
+
+    if (lat == null || lon == null) {
+      const coords = await getCoordsFromAddress(address.trim());
+      if (!coords) {
+        toast.warning("Adresse introuvable. Utilise ta position GPS.");
+        return;
+      }
+      lat = coords.latitude;
+      lon = coords.longitude;
+      setLatitude(lat);
+      setLongitude(lon);
     }
 
     try {
@@ -84,24 +93,24 @@ export function useAddRestroomViewModel() {
             ? "Horaires commerciaux"
             : "Inconnus";
 
-      createToiletMutation.mutate({
+      const payload = {
         name: name.trim(),
         address: address.trim(),
-        latitude,
-        longitude,
-        type: type === "public" ? "public" : "private",
+        latitude: lat,
+        longitude: lon,
+        types: [type === "public" ? "public" : "private"],
+        external_id: `peepal-user-${profile.id}-${Date.now()}`,
         accessible: accessibility === "accessible",
         free: true,
         clean: true,
         opening_hours,
         createdBy: profile.id,
-      });
+      };
+
+      console.log("=== PAYLOAD ENVOYÉ ===", JSON.stringify(payload, null, 2));
+      createToiletMutation.mutate(payload);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Impossible de récupérer ton profil.";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Impossible de récupérer ton profil."));
     }
   }, [
     name,
@@ -137,8 +146,8 @@ export function useAddRestroomViewModel() {
 
       const addr = await getAddressFromCoords(lat, lon);
       setAddress(addr);
-    } catch {
-      toast.error("Impossible de récupérer ta position pour le moment.");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Impossible de récupérer ta position."));
     } finally {
       setIsLocLoading(false);
     }

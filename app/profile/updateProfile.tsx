@@ -7,6 +7,7 @@ import {
 import { useToast } from "@/components/toast/useToast";
 import { Colors } from "@/constants/Colors";
 import { Shadows } from "@/constants/Shadows";
+import { getErrorMessage } from "@/utils/errorHandler";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -35,8 +36,8 @@ export default function UpdateProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [primaryLanguage, setPrimaryLanguage] = useState("French");
-  const [secondaryLanguage, setSecondaryLanguage] = useState("English");
+  // const [primaryLanguage, setPrimaryLanguage] = useState("French");
+  // const [secondaryLanguage, setSecondaryLanguage] = useState("English");
   const [profileImage, setProfileImage] = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -67,10 +68,10 @@ export default function UpdateProfileScreen() {
       }
     };
     loadProfile();
-  }, []);
+  }, [toast]);
 
   const handleBack = () => {
-    router.replace("/(tabs)/profile");
+    router.back();
   };
 
   const handleSave = async () => {
@@ -93,7 +94,7 @@ export default function UpdateProfileScreen() {
         setUploadingPhoto(true);
         try {
           photoUrl = await uploadProfilePhoto(newPhotoUri);
-        } catch (uploadError) {
+        } catch {
           toast.error("Impossible d'uploader la photo.");
           setUploadingPhoto(false);
           setSaving(false);
@@ -110,7 +111,7 @@ export default function UpdateProfileScreen() {
       await updateProfile(updates);
 
       toast.success("Profil mis à jour avec succès");
-      router.replace("/(tabs)/profile");
+      router.back();
     } catch (error: any) {
       toast.error(error.message || "Impossible de mettre à jour le profil");
     } finally {
@@ -119,7 +120,7 @@ export default function UpdateProfileScreen() {
   };
 
   const handleCancel = () => {
-    router.replace("/(tabs)/profile");
+    router.back();
   };
 
   const handleChangePhoto = async () => {
@@ -144,8 +145,10 @@ export default function UpdateProfileScreen() {
         setProfileImage(selectedUri);
         setNewPhotoUri(selectedUri);
       }
-    } catch (error) {
-      toast.error("Une erreur est survenue lors de la sélection de l'image.");
+    } catch (err: unknown) {
+      toast.error(
+        getErrorMessage(err, "Erreur lors de la sélection de l'image."),
+      );
     }
   };
 
@@ -202,7 +205,7 @@ export default function UpdateProfileScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.text }]}>
-              Nom d'utilisateur
+              {"Nom d'utilisateur"}
             </Text>
             <TextInput
               style={[

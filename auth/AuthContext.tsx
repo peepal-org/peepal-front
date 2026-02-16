@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import { User } from "../types/ui/User";
+import { setForceLogoutHandler } from "./authEvents";
 import { logout as authLogout, getToken, getUserProfile } from "./authService";
 
 interface AuthContextType {
@@ -54,6 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authLogout();
     setUser(null);
     setIsAuthenticated(false);
+  }, []);
+
+  useEffect(() => {
+    setForceLogoutHandler(() => {
+      setUser(null);
+      setIsAuthenticated(false);
+    });
   }, []);
 
   return (

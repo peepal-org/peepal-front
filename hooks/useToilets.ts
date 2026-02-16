@@ -2,6 +2,7 @@ import { apiFetch } from "@/functions/api";
 import { mapApiToilet } from "@/functions/mappers/toilet";
 import type { ApiToilet } from "@/types/api/ApiToilet";
 import type { Toilet } from "@/types/ui/Toilet";
+import { getErrorMessage } from "@/utils/errorHandler";
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
@@ -33,8 +34,9 @@ export function useToilets() {
     select: (apiToilets) => apiToilets.map(mapApiToilet) as Toilet[],
   });
 
-  const apiError =
-    error instanceof Error ? error.message : error ? String(error) : null;
+  const apiError = error
+    ? getErrorMessage(error, "Erreur de chargement des toilettes.")
+    : null;
 
   // Location permission
   useEffect(() => {
@@ -54,8 +56,10 @@ export function useToilets() {
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
         });
-      } catch {
-        setLocationError("Impossible de récupérer la position");
+      } catch (err: unknown) {
+        setLocationError(
+          getErrorMessage(err, "Impossible de récupérer la position."),
+        );
       }
     })();
   }, []);

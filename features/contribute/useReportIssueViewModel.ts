@@ -1,8 +1,10 @@
 import { getUserProfile } from "@/auth/authService";
+import { useToast } from "@/components/toast/useToast";
 import { useCreateReportMutation } from "@/hooks/reportMutation";
 import { IssueKey, IssueOption } from "@/types/IssueKey";
+import { getErrorMessage } from "@/utils/errorHandler";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const ISSUE_OPTIONS: IssueOption[] = [
   { key: "closed", label: "Fermé" },
@@ -14,8 +16,9 @@ const ISSUE_OPTIONS: IssueOption[] = [
 export function useReportIssueViewModel() {
   const { toiletId } = useLocalSearchParams();
   const router = useRouter();
+  const toast = useToast();
 
-  const toiletIdNum = Number(toiletId) || -1;
+  const toiletIdNum = useMemo(() => Number(toiletId), [toiletId]);
 
   const [selected, setSelected] = useState<IssueKey>("closed");
   const [details, setDetails] = useState("");
@@ -30,13 +33,23 @@ export function useReportIssueViewModel() {
       try {
         const profile = await getUserProfile();
         if (profile?.id) setUserId(profile.id);
-      } catch (error) {
-        console.error("Erreur lors du chargement du profil:", error);
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, "Impossible de charger ton profil."));
       }
     })();
-  }, []);
+  }, [toast]);
 
   const handleSubmit = useCallback(() => {
+    if (!userId) {
+      toast.error("Profil introuvable. Reconnecte-toi.");
+      return;
+    }
+
+    if (!Number.isFinite(toiletIdNum) || toiletIdNum <= 0) {
+      toast.error("ID toilette invalide.");
+      return;
+    }
+
     if (selected === "other" && details.trim() === "") {
       setDetailsError("Veuillez préciser le problème");
       return;
@@ -44,12 +57,12 @@ export function useReportIssueViewModel() {
 
     setDetailsError("");
     createReportMutation.mutate({
-      userId: userId ?? -1,
+      userId,
       toiletId: toiletIdNum,
       type: selected,
       description: details,
     });
-  }, [selected, details, userId, toiletIdNum, createReportMutation]);
+  }, [selected, details, userId, toiletIdNum, toast, createReportMutation]);
 
   const goBack = useCallback(() => router.back(), [router]);
 
