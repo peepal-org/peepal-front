@@ -157,9 +157,9 @@ export default function ToiletDetailsScreen() {
 
      try {
       await deleteToilet(toilet.id);
-            queryClient.invalidateQueries({ queryKey: ["toilets"] });
-            Alert.alert("Succès", "Toilettes supprimé avec succès");
-            router.back();
+        queryClient.invalidateQueries({ queryKey: ["toilets"] });
+        Alert.alert("Succès", "Toilettes supprimé avec succès");
+        router.back();
     } catch (error) {
       Alert.alert("Erreur", "Une erreur s'est produite lors de la suppression");
     }
@@ -180,11 +180,31 @@ export default function ToiletDetailsScreen() {
         <Image source={{ uri: toilet.image ?? DEFAULT_TOILET_IMAGE }} style={styles.image} />
 
         <View style={styles.mainInfo}>
-          <Text style={[styles.toiletName, { color: theme.text }]}>{toilet.name}</Text>
-          <Text style={[styles.toiletAddress, { color: theme.textMuted }]}>{address}</Text>
-          <TouchableOpacity style={[styles.goButton, { backgroundColor: theme.primary }]} onPress={() => openInExternalMaps(toilet)}>
-            <Text style={[styles.goButtonText, { color: theme.card }]}>Y aller 🧭</Text>
-          </TouchableOpacity>
+          <Text style={[styles.toiletName, { color: theme.text }]}>
+            {toilet.name}
+          </Text>
+          <Text style={[styles.toiletAddress, { color: theme.textMuted }]}>
+            {address}
+          </Text>
+
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={[styles.goButton, { backgroundColor: theme.primary }]}
+              onPress={() => openInExternalMaps(toilet)}
+            >
+              <Text style={[styles.goButtonText, { color: theme.card }]}>
+                Y aller 🧭
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.goButton, { backgroundColor: theme.error }]}
+              onPress={() => router.push({ pathname: '/contribute/report-issue', params: { toiletId: toiletIdNum } })}
+            >
+              <Text style={[styles.goButtonText, { color: theme.card }]}>
+                Signaler ⚠️
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={[styles.infoRow, { borderColor: theme.border }]}>
@@ -372,7 +392,19 @@ const styles = StyleSheet.create({
   mainInfo: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
   toiletName: { fontSize: 22, fontWeight: "700", marginBottom: 4 },
   toiletAddress: { fontSize: 14, marginBottom: 8 },
-  goButton: { alignSelf: "flex-start", paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999 },
+
+  buttonsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  goButton: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    alignItems: "center",
+  },
   goButtonText: { fontSize: 14, fontWeight: "600" },
   infoRow: { flexDirection: "row", paddingHorizontal: 16, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 8, gap: 16 },
   infoColumn: { flex: 1 },
