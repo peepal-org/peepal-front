@@ -123,7 +123,7 @@ export default function ProfileScreen() {
       id: "signalements",
       icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
       title: "Signalements",
-      subtitle: "20",
+      subtitle: "0",
       route: "/profile/contributions?tab=signalements&scope=personal",
     },
   ];
@@ -147,7 +147,7 @@ export default function ProfileScreen() {
       id: "all-signalements",
       icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
       title: "Signalements",
-      subtitle: "20",
+      subtitle: "0",
       route: "/profile/contributions?tab=signalements&scope=all",
     },
   ];
@@ -247,7 +247,7 @@ export default function ProfileScreen() {
         <View style={styles.stats}>
           {[
             { number: myCommentsCount, label: "Commentaires" },
-            { number: 20, label: "Signalements" },
+            { number: 0, label: "Signalements" },
             { number: 3, label: "Badges" },
           ].map((stat, index) => (
             <View key={index} style={styles.statBox}>
@@ -261,7 +261,6 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Mes contributions - pour tous les utilisateurs */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
             Mes contributions

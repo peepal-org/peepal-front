@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, SectionList, FlatList, StyleSheet, Image, Alert } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import PageHeader from "../../components/header";
 import { Statut } from "../../types/Statut";
 import { fetchComments } from "@/functions/api/comments";
@@ -9,7 +9,7 @@ import { mapApiComment } from "@/functions/mappers/comments";
 import { mapApiToilet } from "@/functions/mappers/toilet";
 import type { Comment } from "@/types/ui/Comment";
 import type { Toilet } from "@/types/ui/Toilet";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_USER_AVATAR, DEFAULT_TOILET_IMAGE } from "@/constants/Images";
 import { getUserProfile } from "@/auth/authService";
 import type { ApiUser } from "@/types/api/ApiUser";
@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 export default function ContributionsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const queryClient = useQueryClient();
   const [userProfile, setUserProfile] = useState<ApiUser | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,17 @@ export default function ContributionsScreen() {
     };
     loadProfile();
   }, []);
+
+  // Rafraîchir les données à chaque fois que la page devient active
+  useFocusEffect(
+    useCallback(() => {
+      // Invalider toutes les queries pour forcer un refetch
+      queryClient.invalidateQueries({ queryKey: ["myComments"] });
+      queryClient.invalidateQueries({ queryKey: ["myToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["allComments"] });
+      queryClient.invalidateQueries({ queryKey: ["allToilets"] });
+    }, [queryClient])
+  );
 
   // Déterminer le scope (personal ou all) depuis les paramètres
   const scope = (params.scope as string) || "personal";
@@ -54,7 +66,8 @@ export default function ContributionsScreen() {
     select: (apiToilets) => {
       return apiToilets
         .filter((toilet) => toilet.createdBy?.id === userProfile?.id)
-        .map(mapApiToilet);
+        .map(mapApiToilet)
+        .filter((toilet) => toilet.type);
     },
     enabled: !!userProfile && scope === "personal",
   });
@@ -73,7 +86,9 @@ export default function ContributionsScreen() {
     queryKey: ["allToilets"],
     queryFn: fetchToilets,
     select: (apiToilets) => {
-      return apiToilets.map(mapApiToilet);
+      return apiToilets
+        .map(mapApiToilet)
+        .filter((toilet) => toilet.type);
     },
     enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
   });
@@ -85,26 +100,6 @@ export default function ContributionsScreen() {
   const data = {
     commentaires: userComments,
     signalements: [
-      { id: "28", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "29", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "30", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "31", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "32", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "33", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "34", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "35", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "36", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "37", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "38", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "39", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "40", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "41", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "42", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "43", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "44", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "45", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "46", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "47", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" }
     ],
   };
 

@@ -17,10 +17,20 @@ export default function Login() {
   const router = useRouter();
   const { setUser } = useAuth();
 
-  const handleLogin = async () => {
+    const handleLogin = async () => {
     try {
-      const data = await login(email, password); // data.access_token
-      setUser({ token: data.access_token });
+      const data = await login(email, password, false); 
+      setUser(data.user); 
+      router.replace("/(tabs)/map");
+    } catch (err: any) {
+      alert(err?.message ?? "Erreur de connexion");
+    }
+  };
+
+  const handleAdminLogin = async () => {
+    try {
+      const data = await login(email, password, true);
+      setUser(data.user);  
       router.replace("/(tabs)/map");
     } catch (err: any) {
       alert(err?.message ?? "Erreur de connexion");
@@ -60,6 +70,10 @@ export default function Login() {
       {/* Bouton login */}
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Se connecter</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.button} onPress={handleAdminLogin}>
+        <Text style={styles.buttonText}>Se connecter en tant qu'admin</Text>
       </TouchableOpacity>
 
       {/* Lien vers register */}

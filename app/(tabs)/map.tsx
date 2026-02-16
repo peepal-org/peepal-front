@@ -60,13 +60,15 @@ export default function MapScreen() {
         showsUserLocation
         followsUserLocation={false}
       >
-        {filteredToilets.map((toilet) => (
-          <ToiletMarker
-            key={toilet.id}
-            toilet={toilet}
-            theme={theme}
-            onPress={() => handlePressToilet(toilet.id)}
-          />
+        {filteredToilets
+          .filter((toilet) => toilet.type === "accepted")
+          .map((toilet) => (
+            <ToiletMarker
+              key={toilet.id}
+              toilet={toilet}
+              theme={theme}
+              onPress={() => handlePressToilet(toilet.id)}
+            />
         ))}
       </MapView>
 
@@ -84,20 +86,22 @@ export default function MapScreen() {
       />
 
       {/* Show/Hide nearby toilets list button */}
-      <TouchableOpacity
-        style={[styles.nearbyToggle, { bottom: showNearbyList ? 270 : 40 }]}
-        onPress={() => setShowNearbyList((prev) => !prev)}
-      >
-        <Text style={styles.nearbyToggleText}>
-          {showNearbyList
-            ? "Masquer les toilettes proches ▾"
-            : "Afficher les toilettes proches ▴"}
-        </Text>
-      </TouchableOpacity>
+      {filteredToilets.filter((toilet) => toilet.type === "accepted").length > 0 && (
+        <TouchableOpacity
+          style={[styles.nearbyToggle, { bottom: showNearbyList ? 270 : 40 }]}
+          onPress={() => setShowNearbyList((prev) => !prev)}
+        >
+          <Text style={styles.nearbyToggleText}>
+            {showNearbyList
+              ? "Masquer les toilettes proches ▾"
+              : "Afficher les toilettes proches ▴"}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {showNearbyList && (
         <ToiletHorizontalList
-          toilets={filteredToilets}
+          toilets={filteredToilets.filter((toilet) => toilet.type === "accepted")}
           userLocation={userLocation}
           onPressToilet={handlePressToilet}
         />
