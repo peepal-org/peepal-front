@@ -1,19 +1,9 @@
 import { Colors } from "@/constants/Colors";
 import { DEFAULT_TOILET_IMAGE, DEFAULT_USER_AVATAR } from "@/constants/Images";
-import { fetchComments, deleteComment } from "@/functions/api/comments";
-import { fetchToiletById, updateToilet, deleteToilet } from "@/functions/api/toilet";
-import { mapApiComment } from "@/functions/mappers/comments";
-import { mapApiToilet } from "@/functions/mappers/toilet";
-import { Toilet } from "@/types/ui/Toilet";
-import { getAddressFromCoords } from "@/utils/geocoding";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
 import { useToiletDetailViewModel } from "@/features/toilet/useToiletDetailViewModel";
-import React from "react";
-
+import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback } from "react";
 import {
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -23,83 +13,21 @@ import {
   useColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getUserProfile } from "@/auth/authService";
-import type { ApiUser } from "@/types/api/ApiUser";
-import { Ionicons } from "@expo/vector-icons";
-
-function openInExternalMaps(toilet: Toilet) {
-  const lat = toilet.latitude;
-  const lon = toilet.longitude;
-  const label = encodeURIComponent(toilet.name);
-  if (Platform.OS === "ios") {
-    Linking.openURL(`http://maps.apple.com/?ll=${lat},${lon}&q=${label}`);
-    return;
-  }
-  Linking.openURL(`geo:${lat},${lon}?q=${lat},${lon}(${label})`);
-}
+import { useQueryClient } from "@tanstack/react-query";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ToiletDetailsScreen() {
   const toiletViewModel = useToiletDetailViewModel();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
-  const [address, setAddress] = useState("Chargement de l'adresse…");
-  const [userProfile, setUserProfile] = useState<ApiUser | null>(null);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profile = await getUserProfile();
-        setUserProfile(profile);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    loadProfile();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      queryClient.invalidateQueries({ queryKey: ['toilet-detail', toiletViewModel.toilet] });
+    }, [queryClient, toiletViewModel.toilet])
+  );
 
-  const toiletIdNum = Number(id);
-
-  const { data: apiToilet, isLoading: toiletLoading } = useQuery({
-    queryKey: ["toilets", toiletIdNum],
-    queryFn: () => fetchToiletById(toiletIdNum),
-    enabled: Number.isFinite(toiletIdNum),
-  });
-
-  const toilet: Toilet | undefined = apiToilet ? mapApiToilet(apiToilet) : undefined;
-
-  const { data: toiletComments = [] } = useQuery({
-    queryKey: ["comments", toiletIdNum],
-    queryFn: fetchComments,
-    enabled: Number.isFinite(toiletIdNum),
-    select: (apiComments) =>
-      apiComments
-        .filter((c) => c.toilet?.id === toiletIdNum)
-        .map(mapApiComment),
-  });
-
-  const ratingCount = toiletComments.length;
-  const averageRating =
-    ratingCount === 0
-      ? null
-      : toiletComments.reduce((sum, c) => sum + c.rating, 0) / ratingCount;
-
-  const lat = toilet?.latitude;
-  const lon = toilet?.longitude;
-
-  useEffect(() => {
-    if (lat == null || lon == null) return;
-    let cancelled = false;
-    (async () => {
-      const addr = await getAddressFromCoords(lat, lon);
-      if (!cancelled) setAddress(addr);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [lat, lon]);
-
-  // Loader simple
   if (toiletViewModel.isLoading) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: theme.background }]}>
@@ -111,15 +39,16 @@ export default function ToiletDetailsScreen() {
   if (!toiletViewModel.toilet) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: theme.background }]}>
-        <Text style={[styles.errorText, { color: theme.error }]}>🚽 Toilette introuvable</Text>
+        <Text style={[styles.errorText, { color: theme.error }]}>
+          🚽 Toilette introuvable
+        </Text>
         <TouchableOpacity
-          style={[
-            styles.secondaryButton,
-            { backgroundColor: theme.card, borderColor: theme.border },
-          ]}
+          style={[styles.secondaryButton, { backgroundColor: theme.card, borderColor: theme.border }]}
           onPress={toiletViewModel.goBack}
         >
-          <Text style={[styles.secondaryButtonText, { color: theme.textMuted }]}>⬅ Retour</Text>
+          <Text style={[styles.secondaryButtonText, { color: theme.textMuted }]}>
+            ⬅ Retour
+          </Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -127,59 +56,17 @@ export default function ToiletDetailsScreen() {
 
   const isOpen = toiletViewModel.toilet.isOpen ?? true;
   const hoursLabel = toiletViewModel.toilet.openingHours ?? "Horaires inconnus";
-  const accessibilityLabel = toiletViewModel.toilet.accessible
-    ? "Accessible UFR"
-    : "Non accessible";
-
-    const handleUpdateStatus = async (status: "accepted" | "rejected") => {
-    if (!userProfile || userProfile.type !== "admin") return;
-    
-    try {
-      await updateToilet(toilet.id, { status });
-      queryClient.invalidateQueries(["toilets", toilet.id]);
-      
-      if (status === "accepted") {
-        Alert.alert("Succès", "Toilettes acceptées avec succès");
-      } else if (status === "rejected") {
-        Alert.alert("Succès", "Toilettes rejetées avec succès");
-      }
-    } catch (error) {
-      Alert.alert("Erreur", "Une erreur s'est produite");
-    }
-  };
-
-  const handleDeleteComment = async (commentId: number) => {
-    try {
-      await deleteComment(commentId);
-      queryClient.invalidateQueries({ queryKey: ["comments", toiletIdNum] });
-      Alert.alert("Succès", "Commentaire supprimé avec succès");
-    } catch (error) {
-      Alert.alert("Erreur", "Une erreur s'est produite lors de la suppression");
-    }
-  };
-
-  const handleDeleteToilet = async () => {
-    if (!toilet) return;
-
-     try {
-      await deleteToilet(toilet.id);
-        queryClient.invalidateQueries({ queryKey: ["toilets"] });
-        Alert.alert("Succès", "Toilettes supprimé avec succès");
-        router.back();
-    } catch (error) {
-      Alert.alert("Erreur", "Une erreur s'est produite lors de la suppression");
-    }
+  const accessibilityLabel = toiletViewModel.toilet.accessible ? "Accessible UFR" : "Non accessible";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity
-          onPress={toiletViewModel.goBack}
-          style={styles.headerBack}
-        >
+        <TouchableOpacity onPress={toiletViewModel.goBack} style={styles.headerBack}>
           <Text style={[styles.headerBackIcon, { color: theme.text }]}>←</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Infos des toilettes</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Infos des toilettes
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -224,7 +111,9 @@ export default function ToiletDetailsScreen() {
           </View>
           <View style={styles.infoColumn}>
             <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Statut</Text>
-            <Text style={[styles.infoValue, { color: isOpen ? theme.success : theme.error }]}>{isOpen ? "Ouvert" : "Fermé"}</Text>
+            <Text style={[styles.infoValue, { color: isOpen ? theme.success : theme.error }]}>
+              {isOpen ? "Ouvert" : "Fermé"}
+            </Text>
           </View>
           <View style={styles.infoColumn}>
             <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Accessibilité</Text>
@@ -232,51 +121,20 @@ export default function ToiletDetailsScreen() {
           </View>
         </View>
 
-        {userProfile?.type === "admin" && (
+        {toiletViewModel.isAdmin && (
           <View style={styles.adminButtonsContainer}>
-
-            {toilet?.status === "waiting" && (
+            {toiletViewModel.toilet?.statut === "waiting" && (
               <>
                 <TouchableOpacity
-                  style={[styles.adminButton, { backgroundColor: "red" }]}
-                  onPress={() => {
-                    Alert.alert(
-                      "Rejeter les toilettes",
-                      "Voulez-vous vraiment rejeter ces toilettes ?",
-                      [
-                        { text: "Annuler", style: "cancel" },
-                        {
-                          text: "Rejeter",
-                          style: "destructive",
-                          onPress: () => {
-                            handleUpdateStatus("rejected");
-                          },
-                        },
-                      ]
-                    );
-                  }}
+                  style={[styles.adminButton, { backgroundColor: "#ef4444" }]}
+                  onPress={toiletViewModel.handleRejectToilet}
                 >
                   <Text style={styles.adminButtonText}>Rejeter</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.adminButton, { backgroundColor: "green" }]}
-                  onPress={() => {
-                    Alert.alert(
-                      "Accepter les toilettes",
-                      "Voulez-vous vraiment accepter ces toilettes ?",
-                      [
-                        { text: "Annuler", style: "cancel" },
-                        {
-                          text: "Accepter",
-                          style: "destructive",
-                          onPress: () => {
-                            handleUpdateStatus("accepted");
-                          },
-                        },
-                      ]
-                    );
-                  }}
+                  style={[styles.adminButton, { backgroundColor: "#22c55e" }]}
+                  onPress={toiletViewModel.handleAcceptToilet}
                 >
                   <Text style={styles.adminButtonText}>Accepter</Text>
                 </TouchableOpacity>
@@ -284,31 +142,14 @@ export default function ToiletDetailsScreen() {
             )}
 
             <TouchableOpacity
-              style={[styles.adminButton, { backgroundColor: "#888" }]}
-              onPress={() => {
-                Alert.alert(
-                  "Supprimer les toilettes",
-                  "Voulez-vous vraiment supprimer ces toilettes ?",
-                  [
-                    { text: "Annuler", style: "cancel" },
-                    {
-                      text: "Supprimer",
-                      style: "destructive",
-                      onPress: () => {
-                        handleDeleteToilet();
-                      },
-                    },
-                  ]
-                );
-              }}
+              style={[styles.adminButton, { backgroundColor: "#6b7280" }]}
+              onPress={toiletViewModel.handleDeleteToilet}
             >
               <Text style={styles.adminButtonText}>Supprimer</Text>
             </TouchableOpacity>
-
           </View>
         )}
-
-
+        
         <View style={styles.section}>
           <View style={styles.ratingsHeaderRow}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -327,7 +168,7 @@ export default function ToiletDetailsScreen() {
           {toiletViewModel.ratingCount === 0 ? (
             <View style={{ marginTop: 12 }}>
               <Text style={{ color: theme.textMuted, fontSize: 14 }}>
-                Pas encore d’avis pour ces toilettes.
+                Pas encore d'avis pour ces toilettes.
               </Text>
               <Text style={{ color: theme.textMuted, fontSize: 14 }}>
                 Sois le·la premier·ère à partager ton expérience !
@@ -349,10 +190,7 @@ export default function ToiletDetailsScreen() {
                       return (
                         <Text
                           key={starValue}
-                          style={[
-                            styles.star,
-                            { color: filled ? "#FBBF24" : theme.textMuted },
-                          ]}
+                          style={[styles.star, { color: filled ? "#FBBF24" : theme.textMuted }]}
                         >
                           {filled ? "★" : "☆"}
                         </Text>
@@ -369,40 +207,46 @@ export default function ToiletDetailsScreen() {
                 <View key={review.id} style={styles.reviewCard}>
                   <View style={styles.reviewHeaderRow}>
                     <View style={styles.reviewAvatar}>
-                      <Image source={{ uri: review.user.photoUrl || DEFAULT_USER_AVATAR }} style={styles.reviewAvatarImage} />
+                      <Image
+                        source={{ uri: review.user.photoUrl || DEFAULT_USER_AVATAR }}
+                        style={styles.reviewAvatarImage}
+                      />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.reviewAuthor, { color: theme.text }]}>{review.user.name}</Text>
-                      <Text style={{ color: theme.textMuted, fontSize: 12 }}>{review.dateLabel ?? "Date inconnue"}</Text>
+                      <Text style={[styles.reviewAuthor, { color: theme.text }]}>
+                        {review.user.name}
+                      </Text>
+                      <Text style={{ color: theme.textMuted, fontSize: 12 }}>
+                        {review.dateLabel ?? "Date inconnue"}
+                      </Text>
                     </View>
+
                     <View style={{ flexDirection: "row" }}>
                       {Array.from({ length: 5 }).map((_, index) => {
                         const starValue = index + 1;
                         const filled = starValue <= review.rating;
-                        return <Text key={starValue} style={[styles.starSmall, { color: filled ? "#FBBF24" : theme.textMuted }]}>{filled ? "★" : "☆"}</Text>;
+                        return (
+                          <Text
+                            key={starValue}
+                            style={[styles.starSmall, { color: filled ? "#FBBF24" : theme.textMuted }]}
+                          >
+                            {filled ? "★" : "☆"}
+                          </Text>
+                        );
                       })}
                     </View>
                   </View>
-                  
+
                   <View style={styles.commentTextContainer}>
-                    <Text style={[styles.reviewText, { color: theme.text, flex: 1 }]}>{review.content}</Text>
-                    {userProfile?.type === "admin" && (
+                    <Text style={[styles.reviewText, { color: theme.text, flex: 1 }]}>
+                      {review.content}
+                    </Text>
+                    {toiletViewModel.isAdmin && (
                       <TouchableOpacity
                         style={styles.deleteButton}
-                        onPress={() => {
-                          Alert.alert(
-                            "Supprimer le commentaire",
-                            "Voulez-vous vraiment supprimer ce commentaire ?",
-                            [
-                              { text: "Annuler", style: "cancel" },
-                              { text: "Supprimer", style: "destructive", onPress: () => {
-                                handleDeleteComment(review.id);
-                              }},
-                            ]
-                          );
-                        }}
+                        onPress={() => toiletViewModel.handleDeleteComment(Number(review.id))}
                       >
-                        <Ionicons name="trash-outline" size={20} color="#ff4444" />
+                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -419,7 +263,13 @@ export default function ToiletDetailsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { height: 52, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: {
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   headerBack: { width: 32, alignItems: "flex-start" },
   headerBackIcon: { fontSize: 20, fontWeight: "500" },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "600" },
@@ -428,44 +278,80 @@ const styles = StyleSheet.create({
   mainInfo: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
   toiletName: { fontSize: 22, fontWeight: "700", marginBottom: 4 },
   toiletAddress: { fontSize: 14, marginBottom: 8 },
-
-  buttonsContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 12,
-  },
-  goButton: {
-    flex: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    alignItems: "center",
-  },
+  buttonsContainer: { flexDirection: "row", gap: 12, marginTop: 12 },
+  goButton: { flex: 1, paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999, alignItems: "center" },
   goButtonText: { fontSize: 14, fontWeight: "600" },
-  infoRow: { flexDirection: "row", paddingHorizontal: 16, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 8, gap: 16 },
+  infoRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginTop: 8,
+    gap: 16,
+  },
   infoColumn: { flex: 1 },
   infoLabel: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
   infoValue: { fontSize: 14, fontWeight: "500" },
+  adminButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  adminButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  adminButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+    textAlign: "center",
+  },
   section: { marginHorizontal: 16, marginTop: 24 },
   sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  adminButtonsContainer: { flexDirection: "row", justifyContent: "space-around", alignItems: "center", paddingVertical: 20 },
-  adminButton: { flex: 1, marginHorizontal: 6, paddingVertical: 12, borderRadius: 8, alignItems: "center" },
-  adminButtonText: { color: "#fff", fontWeight: "600", fontSize: 14, textAlign: "center" },
+  errorText: { fontSize: 18, marginBottom: 12 },
   secondaryButton: { paddingVertical: 12, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1 },
   secondaryButtonText: { fontSize: 14, fontWeight: "500" },
-  errorText: { fontSize: 18, marginBottom: 12 },
-  reviewCard: { marginTop: 12, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderColor: "rgba(0,0,0,0.08)" },
-  reviewHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
-  reviewAuthor: { fontSize: 14, fontWeight: "600" },
-  reviewText: { fontSize: 14, lineHeight: 20 },
-  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.04)", alignItems: "center", justifyContent: "center", marginRight: 8 },
-  reviewAvatarImage: { width: 36, height: 36, borderRadius: 18 },
-  starSmall: { fontSize: 14 },
-  ratingSummaryRow: { marginVertical: 8 },
-  commentTextContainer: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  deleteButton: { paddingTop: 2 },ratingsHeaderRow: {flexDirection: "row",alignItems: "center",justifyContent: "space-between",},
-  rateButton: {paddingHorizontal: 10,paddingVertical: 6,borderRadius: 999,backgroundColor: "rgba(0,0,0,0.03)",},
+  ratingsHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  rateButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(0,0,0,0.03)" },
   rateButtonText: { fontSize: 13, fontWeight: "500" },
+  ratingSummaryRow: { flexDirection: "row", alignItems: "center", marginTop: 12, marginBottom: 8 },
   ratingScoreColumn: { flexDirection: "column", alignItems: "flex-start" },
   ratingAverage: { fontSize: 28, fontWeight: "700" },
+  starsRow: { flexDirection: "row", marginVertical: 4, gap: 2 },
+  star: { fontSize: 18 },
+  reviewCard: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  reviewHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+  reviewAuthor: { fontSize: 14, fontWeight: "600" },
+  starSmall: { fontSize: 14 },
+  reviewText: { fontSize: 14, lineHeight: 20 },
+  reviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.04)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  reviewAvatarImage: { width: 36, height: 36, borderRadius: 18 },
+  commentTextContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  deleteButton: {
+    paddingTop: 2,
+  },
 });

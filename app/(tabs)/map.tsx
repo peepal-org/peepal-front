@@ -61,7 +61,7 @@ export default function MapScreen() {
         followsUserLocation={false}
       >
         {filteredToilets
-          .filter((toilet) => toilet.status === "accepted")
+          .filter((toilet) => toilet.statut === "accepted")
           .map((toilet) => (
             <ToiletMarker
               key={toilet.id}
@@ -85,7 +85,7 @@ export default function MapScreen() {
         onToggleOpenNow={() => setFilterOpenNow((prev) => !prev)}
       />
 
-      {filteredToilets.filter((toilet) => toilet.status === "accepted").length > 0 && (
+      {filteredToilets.filter((toilet) => toilet.statut === "accepted").length > 0 && (
         <TouchableOpacity
           style={[styles.nearbyToggle, { bottom: showNearbyList ? 270 : 40 }]}
           onPress={() => setShowNearbyList((prev) => !prev)}
@@ -100,7 +100,7 @@ export default function MapScreen() {
 
       {showNearbyList && (
         <ToiletHorizontalList
-          toilets={filteredToilets.filter((toilet) => toilet.status === "accepted")}
+          toilets={filteredToilets.filter((toilet) => toilet.statut === "accepted")}
           userLocation={userLocation}
           onPressToilet={handlePressToilet}
         />

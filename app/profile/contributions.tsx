@@ -1,5 +1,3 @@
-import { getUserProfile } from "@/auth/authService";
-import { DEFAULT_TOILET_IMAGE, DEFAULT_USER_AVATAR } from "@/constants/Images";
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, SectionList, FlatList, StyleSheet, Image, Alert } from "react-native";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -12,9 +10,13 @@ import { mapApiToilet } from "@/functions/mappers/toilet";
 import type { ApiUser } from "@/types/api/ApiUser";
 import type { Comment } from "@/types/ui/Comment";
 import type { Toilet } from "@/types/ui/Toilet";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_USER_AVATAR, DEFAULT_TOILET_IMAGE } from "@/constants/Images";
 import { getUserProfile } from "@/auth/authService";
+import { Tab } from "../../types/Tab";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+
 
 export default function ContributionsScreen() {
   const router = useRouter();
@@ -59,6 +61,9 @@ export default function ContributionsScreen() {
         .map(mapApiComment);
     },
     enabled: !!userProfile && scope === "personal",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const { data: myToilets = [] } = useQuery({
@@ -71,6 +76,9 @@ export default function ContributionsScreen() {
         .filter((toilet) => toilet.type);
     },
     enabled: !!userProfile && scope === "personal",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Toutes les contributions (pour les admins uniquement)
@@ -81,6 +89,9 @@ export default function ContributionsScreen() {
       return apiComments.map(mapApiComment);
     },
     enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const { data: allToilets = [] } = useQuery({
@@ -92,6 +103,9 @@ export default function ContributionsScreen() {
         .filter((toilet) => toilet.type);
     },
     enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Sélectionner les bonnes données selon le scope
@@ -100,128 +114,7 @@ export default function ContributionsScreen() {
 
   const data = {
     commentaires: userComments,
-    signalements: [
-      {
-        id: "28",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "29",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "30",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "31",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "32",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "33",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "34",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "35",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "36",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "37",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "38",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "39",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "40",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "41",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "42",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "43",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "44",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "45",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "46",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-      {
-        id: "47",
-        title: "Pipi express",
-        address: "897 Pine St",
-        image: "https://picsum.photos/200/200?random=5",
-      },
-    ],
+    signalements: [],
   };
 
   const tabs = [
@@ -302,7 +195,7 @@ export default function ContributionsScreen() {
           </Text>
         </View>
       </View>
-      {toilet.status && renderStatutBuffer(toilet.status)}
+      {toilet.statut && renderStatutBuffer(toilet.statut)}
     </TouchableOpacity>
   );
 
@@ -346,14 +239,57 @@ export default function ContributionsScreen() {
 
   const toiletSections = userProfile?.type === "admin" && scope === "all"
     ? [
-        { title: "En attente", data: userToilets.filter((t) => t.status === "waiting") },
-        { title: "Rejetés", data: userToilets.filter((t) => t.status === "rejected") },
-        { title: "Acceptés", data: userToilets.filter((t) => t.status === "accepted") },
+        { title: "En attente", data: userToilets.filter((t) => t.statut === "waiting") },
+        { title: "Rejetés", data: userToilets.filter((t) => t.statut === "rejected") },
+        { title: "Acceptés", data: userToilets.filter((t) => t.statut === "accepted") },
       ].filter(section => section.data.length > 0)
     : [{ title: "", data: userToilets }];
 
   // Titre dynamique selon le scope
   const pageTitle = scope === "all" ? "Contributions (tous les utilisateurs)" : "Mes contributions";
+
+  // Composants pour les listes vides
+  const EmptyToiletsComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="water-outline" size={64} color="#ccc" />
+      <Text style={styles.emptyTitle}>
+        {scope === "all" ? "Aucune toilette ajoutée" : "Vous n'avez pas encore ajouté de toilettes"}
+      </Text>
+      <Text style={styles.emptyDescription}>
+        {scope === "all" 
+          ? "Les toilettes ajoutées par les utilisateurs apparaîtront ici"
+          : "Commencez par ajouter votre première toilette sur la carte"}
+      </Text>
+    </View>
+  );
+
+  const EmptyCommentsComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="chatbubble-outline" size={64} color="#ccc" />
+      <Text style={styles.emptyTitle}>
+        {scope === "all" ? "Aucun commentaire" : "Vous n'avez pas encore laissé de commentaires"}
+      </Text>
+      <Text style={styles.emptyDescription}>
+        {scope === "all"
+          ? "Les commentaires des utilisateurs apparaîtront ici"
+          : "Partagez votre expérience en commentant une toilette"}
+      </Text>
+    </View>
+  );
+
+  const EmptySignalementsComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="flag-outline" size={64} color="#ccc" />
+      <Text style={styles.emptyTitle}>
+        {scope === "all" ? "Aucun signalement" : "Vous n'avez pas encore fait de signalements"}
+      </Text>
+      <Text style={styles.emptyDescription}>
+        {scope === "all"
+          ? "Les signalements des utilisateurs apparaîtront ici"
+          : "Signalez des problèmes pour améliorer la qualité des informations"}
+      </Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -389,12 +325,21 @@ export default function ContributionsScreen() {
               title ? <Text style={styles.sectionHeader}>{title}</Text> : null
             }
             stickySectionHeadersEnabled={false}
+            ListEmptyComponent={EmptyToiletsComponent}
+          />
+        ) : selected === "commentaires" ? (
+          <FlatList
+            data={data.commentaires}
+            keyExtractor={(item) => `commentaires-${item.id}`}
+            renderItem={({ item }) => renderCommentItem(item)}
+            ListEmptyComponent={EmptyCommentsComponent}
           />
         ) : (
           <FlatList
-            data={data[selected]}
-            keyExtractor={(item) => `${selected}-${item.id}`}
-            renderItem={selected === "commentaires" ? ({ item }) => renderCommentItem(item) : undefined}
+            data={data.signalements}
+            keyExtractor={(item) => `signalements-${item.id}`}
+            renderItem={() => null}
+            ListEmptyComponent={EmptySignalementsComponent}
           />
         )}
       </View>
@@ -421,33 +366,25 @@ const styles = StyleSheet.create({
     color: "black",
     fontWeight: "600",
   },
-  item: { flexDirection: "row", alignItems: "center", paddingVertical: 15, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: "#e0e0e0", backgroundColor: "#fff" },
-  image: { width: 55, height: 55, borderRadius: 10, marginRight: 15 },
-  itemContent: { flex: 1 },
-  title: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-  toiletHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-  accessibleIcon: { fontSize: 16, color: "#3BAF74" },
-  toiletMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
-  toiletMetaText: { fontSize: 14, fontWeight: "500" },
-  separator: { color: "#888", fontSize: 14 },
-  commentHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  dateLabel: { color: "#888", fontSize: 12 },
-  commentContent: { color: "#555", fontSize: 14, marginBottom: 6 },
-  ratingContainer: { flexDirection: "row", alignItems: "center" },
-  ratingStar: { fontSize: 14 },
-  ratingText: { color: "#666", fontSize: 13, fontWeight: "600", marginLeft: 6 },
-  bufferBase: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, borderWidth: 3, position: "absolute", right: 10 },
-  bufferRejected: { borderColor: "#ff4444" },
-  bufferAccepted: { borderColor: "#4CAF50" },
-  bufferWaiting: { borderColor: "#323030FF" },
-  bufferText: { fontSize: 12, fontWeight: "600" },
-  bufferTextRejected: { color: "#ff4444" },
-  bufferTextAccepted: { color: "#4CAF50" },
-  bufferTextWaiting: { color: "#323030ff" },
-  trashButton: { marginTop: 2, marginBottom: 6 },
-  trashIcon: { fontSize: 16 },
-  trashContainer: { position: "absolute", right: 0, top: 24 },
-  sectionHeader: { fontSize: 18, fontWeight: "700", marginVertical: 10, color: "#333" },
+
+  trashButton: { 
+    marginTop: 2, 
+    marginBottom: 6 
+  },
+  trashIcon: { 
+    fontSize: 16 
+  },
+  trashContainer: { 
+    position: "absolute", 
+    right: 0, 
+    top: 24 
+  },
+  sectionHeader: { 
+    fontSize: 18, 
+    fontWeight: "700", 
+    marginVertical: 10, 
+    color: "#333" 
+  },
   item: {
     flexDirection: "row",
     alignItems: "center",
@@ -558,5 +495,26 @@ const styles = StyleSheet.create({
   },
   bufferTextWaiting: {
     color: "#323030ff",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 30,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 20,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyDescription: {
+    fontSize: 14,
+    color: "#888",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

@@ -1,6 +1,10 @@
+import { login } from "@/auth/authService";
 import { Colors } from "@/constants/Colors";
 import { useLoginViewModel } from "@/features/auth/useLoginViewModel";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/auth/useAuth";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -22,27 +26,6 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  const { setUser } = useAuth();
-
-  const handleLogin = async () => {
-    try {
-      const data = await login(email, password, false); 
-      setUser(data.user); 
-      router.replace("/(tabs)/map");
-    } catch (err: any) {
-      alert(err?.message ?? "Erreur de connexion");
-    }
-  };
-
-  const handleAdminLogin = async () => {
-    try {
-      const data = await login(email, password, true);
-      setUser(data.user);  
-      router.replace("/(tabs)/map");
-    } catch (err: any) {
-      alert(err?.message ?? "Erreur de connexion");
-    }
-  };
 
   return (
     <SafeAreaView
@@ -147,6 +130,27 @@ export default function Login() {
               <Text style={styles.loginButtonText}>Se connecter</Text>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.loginButton,
+              {
+                backgroundColor: loginViewModel.isFormValid
+                  ? theme.primary
+                  : Colors.palette.disabled,
+              },
+            ]}
+            onPress={loginViewModel.handleAdminLogin}
+            disabled={!loginViewModel.isFormValid || loginViewModel.isLoading}
+            activeOpacity={0.8}
+          >
+            {loginViewModel.isLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.loginButtonText}>Se connecter en tant qu'Admin</Text>
+            )}
+          </TouchableOpacity>
+
         </View>
 
         {/* Footer */}

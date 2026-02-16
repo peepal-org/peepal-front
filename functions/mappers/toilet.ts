@@ -80,14 +80,11 @@ export function mapApiToilet(api: ApiToilet): Toilet {
     longitude: api.longitude,
     free: api.free,
     accessible: api.accessible,
-
-    status: mapApiStatus(api.status),
-
     address: api.address,
     openingHours: api.opening_hours,
     type: api.types?.[0] ?? "public",
     image: undefined,
     isOpen: computeIsOpen(api.opening_hours),
-    statut: "accepted", // to change when  its handled in backend
+    statut: mapApiStatus(api.status) ?? "waiting",
   };
 }

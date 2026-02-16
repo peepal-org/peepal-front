@@ -105,6 +105,7 @@ export function useAddRestroomViewModel() {
         clean: true,
         opening_hours,
         createdBy: profile.id,
+        status: "waiting"
       };
 
       console.log("=== PAYLOAD ENVOYÉ ===", JSON.stringify(payload, null, 2));
