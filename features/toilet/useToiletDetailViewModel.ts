@@ -126,20 +126,18 @@ export function useToiletDetailViewModel() {
     if (!isAdmin || !toilet) return;
 
     try {
-      // ✅ 1. Mise à jour optimiste du cache AVANT l'appel API
+
       queryClient.setQueryData(["toilets", toiletIdNum], (oldData: any) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
           status: status,
-          statut: status, // Par sécurité, on met à jour les deux variantes
+          statut: status,
         };
       });
 
-      // ✅ 2. Appel API
       await updateToilet(Number(toilet.id), { status });
       
-      // ✅ 3. Refetch pour synchroniser avec le serveur
       await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
 
       Alert.alert(
@@ -150,7 +148,6 @@ export function useToiletDetailViewModel() {
       );
 
     } catch (error) {
-      // ✅ 4. En cas d'erreur, on rollback
       await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
       Alert.alert("Erreur", "Une erreur s'est produite");
     }
