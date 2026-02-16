@@ -99,10 +99,10 @@ export default function ProfileScreen() {
   });
 
   const myCommentsCount = myCommentsData.length;
-  const myToiletsCount = myToiletsData.length;
+  const myToiletsCount = myToiletsData.filter(toilet => toilet.status).length;
   
   const allCommentsCount = allCommentsData.length;
-  const allToiletsCount = allToiletsData.length;
+  const allToiletsCount = allToiletsData.filter(toilet => toilet.status).length;
 
   const myContributionItems = [
     {
