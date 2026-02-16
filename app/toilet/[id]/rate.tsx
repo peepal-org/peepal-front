@@ -1,11 +1,7 @@
 import { Colors } from "@/constants/Colors";
-import { createComment } from "@/functions/api/comments";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useRateViewModel } from "@/features/toilet/useRateViewModel";
+import React from "react";
 import {
-  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -15,77 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-async function getUserId(): Promise<number> {
-  const raw = await AsyncStorage.getItem("userProfile");
-  if (!raw) throw new Error("Profil utilisateur introuvable. Reconnecte-toi.");
-  const user = JSON.parse(raw);
-  if (!user?.id) throw new Error("ID utilisateur introuvable. Reconnecte-toi.");
-  return Number(user.id);
-}
-
 export default function RateToiletScreen() {
-  const { id } = useLocalSearchParams();
-  const router = useRouter();
+  const rateViewModel = useRateViewModel();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
-
-  const toiletIdNum = useMemo(() => Number(id), [id]);
-
-  const [rating, setRating] = useState<number>(0);
-  const [comment, setComment] = useState("");
-
-  const queryClient = useQueryClient();
-
-  const createCommentMutation = useMutation({
-    mutationFn: createComment,
-    onSuccess: async () => {
-      // La page détail utilise ["comments", toiletIdNum]
-      queryClient.invalidateQueries({ queryKey: ["comments", toiletIdNum] });
-
-      // Optionnel si ailleurs tu as encore ["comments"] (safe)
-      queryClient.invalidateQueries({ queryKey: ["comments"] });
-
-      router.back();
-    },
-    onError: (err: any) => {
-      Alert.alert("Erreur", err?.message ?? "Impossible de publier l’avis.");
-    },
-  });
-
-  function handleSelectRating(value: number) {
-    setRating(value);
-  }
-
-  async function handleSubmit() {
-    if (!Number.isFinite(toiletIdNum)) {
-      Alert.alert("Erreur", "ID toilette invalide.");
-      return;
-    }
-
-    if (!rating || comment.trim().length === 0) {
-      Alert.alert(
-        "Info",
-        "Merci de choisir une note et d'ajouter un commentaire 🙂"
-      );
-      return;
-    }
-
-    try {
-      const userId = await getUserId();
-
-      createCommentMutation.mutate({
-        userId,
-        toiletId: toiletIdNum,
-        rating,
-        content: comment.trim(),
-      });
-    } catch (e: any) {
-      Alert.alert(
-        "Erreur",
-        e?.message ?? "Impossible de récupérer ton profil."
-      );
-    }
-  }
 
   return (
     <SafeAreaView
@@ -94,7 +23,7 @@ export default function RateToiletScreen() {
       {/* HEADER */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={rateViewModel.goBack}
           style={styles.headerBack}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -117,12 +46,12 @@ export default function RateToiletScreen() {
         <View style={styles.starsRow}>
           {Array.from({ length: 5 }).map((_, index) => {
             const starValue = index + 1;
-            const filled = starValue <= rating;
+            const filled = starValue <= rateViewModel.rating;
             return (
               <TouchableOpacity
                 key={starValue}
-                onPress={() => handleSelectRating(starValue)}
-                disabled={createCommentMutation.isPending}
+                onPress={() => rateViewModel.handleSelectRating(starValue)}
+                disabled={rateViewModel.isPending}
               >
                 <Text
                   style={[
@@ -149,9 +78,9 @@ export default function RateToiletScreen() {
           placeholder="Ex : Très propre, accès facile, un peu d'attente…"
           placeholderTextColor={theme.textMuted}
           multiline
-          value={comment}
-          onChangeText={setComment}
-          editable={!createCommentMutation.isPending}
+          value={rateViewModel.comment}
+          onChangeText={rateViewModel.setComment}
+          editable={!rateViewModel.isPending}
         />
 
         <TouchableOpacity
@@ -159,16 +88,14 @@ export default function RateToiletScreen() {
             styles.submitButton,
             {
               backgroundColor: theme.primary,
-              opacity: createCommentMutation.isPending ? 0.7 : 1,
+              opacity: rateViewModel.isPending ? 0.7 : 1,
             },
           ]}
-          onPress={handleSubmit}
-          disabled={createCommentMutation.isPending}
+          onPress={rateViewModel.handleSubmit}
+          disabled={rateViewModel.isPending}
         >
           <Text style={styles.submitButtonText}>
-            {createCommentMutation.isPending
-              ? "Publication…"
-              : "Publier mon avis"}
+            {rateViewModel.isPending ? "Publication…" : "Publier mon avis"}
           </Text>
         </TouchableOpacity>
       </View>

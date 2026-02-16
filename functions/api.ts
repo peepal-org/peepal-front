@@ -1,14 +1,10 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-import { Platform } from "react-native";
-
-export const API_URL =
-  Platform.OS === "android"
-    ? process.env.EXPO_PUBLIC_API_URL_ANDROID
-    : process.env.EXPO_PUBLIC_API_URL;
+import { triggerForceLogout } from "@/auth/authEvents";
+import { getToken, logout } from "@/auth/authService";
+import { API_URL } from "@/config/env";
+import { ApiError } from "@/types/errors/ApiError";
 
 async function getHeaders() {
-  const token = await AsyncStorage.getItem("token");
+  const token = await getToken();
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -17,26 +13,47 @@ async function getHeaders() {
 
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const headers = await getHeaders();
   const url = `${API_URL}/${path.replace(/^\//, "")}`;
 
-  const res = await fetch(url, {
-    ...options,
-    headers: { ...headers, ...(options.headers ?? {}) },
-  });
+  let res: Response;
+
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: { ...headers, ...(options.headers ?? {}) },
+    });
+  } catch {
+    throw new ApiError("Pas de connexion. Vérifie ton réseau.", 0, true);
+  }
 
   if (!res.ok) {
-    const text = await res.text();
-    try {
-      const json = JSON.parse(text);
-      throw new Error(json.message || `HTTP ${res.status}`);
-    } catch {
-      throw new Error(text || `HTTP ${res.status}`);
+    const serverMessage = await parseErrorBody(res);
+
+    if (res.status === 401) {
+      await logout();
+      triggerForceLogout();
+      throw new ApiError("Session expirée. Reconnecte-toi.", 401);
     }
+
+    throw new ApiError(serverMessage, res.status);
   }
 
   const raw = await res.text();
   return raw ? (JSON.parse(raw) as T) : (undefined as T);
+}
+
+async function parseErrorBody(res: Response): Promise<string> {
+  try {
+    const text = await res.text();
+    const json = JSON.parse(text);
+    const msg = Array.isArray(json.message)
+      ? json.message.join(" | ")
+      : json.message;
+    return msg || `Erreur HTTP ${res.status}`;
+  } catch {
+    return `Erreur HTTP ${res.status}`;
+  }
 }

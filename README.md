@@ -1,50 +1,90 @@
-# Welcome to your Expo app 👋
+<p align="center">
+  <img src="assets/images/peepal-logo.png" alt="Peepal Logo" width="150" />
+</p>
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<h1 align="center">Peepal</h1>
 
-## Get started
+<p align="center">
+  <strong>Trouve des toilettes proches de toi 🚻</strong>
+</p>
 
-1. Install dependencies
+<p align="center">
+  Application mobile collaborative permettant de localiser, ajouter et noter des toilettes publiques à proximité.
+</p>
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 📱 Fonctionnalités
 
-   ```bash
-   npx expo start
-   ```
+- **Carte interactive** — Visualise les toilettes autour de toi en temps réel
+- **Filtres** — Gratuit, accessible PMR, ouvert maintenant
+- **Navigation** — Lance l'itinéraire vers les toilettes depuis l'app
+- **Contributions** — Ajoute de nouvelles toilettes pour la communauté
+- **Avis & notes** — Partage ton expérience et consulte celles des autres
+- **Profil & gamification** — Gagne des points et des badges en contribuant
+- **Dark mode** — Support automatique du thème sombre
 
-In the output, you'll find options to open the app in a
+## 🛠 Stack technique
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+| Technologie                | Usage                           |
+| -------------------------- | ------------------------------- |
+| **React Native** 0.81      | Framework mobile cross-platform |
+| **Expo** 54                | Toolchain & build               |
+| **TypeScript** 5.9         | Typage statique                 |
+| **Expo Router** 6          | Navigation file-based           |
+| **React Query** (TanStack) | Cache & gestion d'état serveur  |
+| **React Native Maps**      | Carte interactive               |
+| **AsyncStorage**           | Persistance locale (auth)       |
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🚀 Installation
 
-## Get a fresh project
+### Prérequis
 
-When you're ready, run:
+- **Node.js** ≥ 18
+- **npm** ou **yarn**
+- **Expo Go** sur ton téléphone ([iOS](https://apps.apple.com/app/expo-go/id982107779) / [Android](https://play.google.com/store/apps/details?id=host.exp.exponent))
+- Le [backend Peepal](https://github.com/votre-org/peepal-backend) qui tourne en local
+
+### Lancer le projet
+
+1. **Cloner le repo**
 
 ```bash
-npm run reset-project
+git clone https://github.com/votre-org/peepal-front.git
+cd peepal-front
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. **Installer les dépendances**
 
-## Learn more
+```bash
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. **Configurer l'environnement**
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Créer un fichier `.env` à la racine :
 
-## Join the community
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3000
+EXPO_PUBLIC_API_URL_ANDROID=http://10.0.2.2:3000
+EXPO_PUBLIC_TOKEN_KEY=token
+EXPO_PUBLIC_USER_KEY=userProfile
+```
 
-Join our community of developers creating universal apps.
+> 💡 En dev sur un appareil physique, l'IP du serveur est détectée automatiquement via Expo. Pas besoin de la modifier.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+4. **Démarrer l'app**
+
+```bash
+npx expo start
+```
+
+Scanner le QR code avec Expo Go sur ton téléphone.
+
+## 👥 Équipe
+
+Projet réalisé dans le cadre d'un projet annuel scolaire.
+
+## 📄 Licence
+
+Projet privé — Tous droits réservés.

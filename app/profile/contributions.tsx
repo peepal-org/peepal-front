@@ -1,26 +1,33 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, Image } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import PageHeader from "../../components/header";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { Tab } from "../../types/Tab";
-import { Statut } from "../../types/Statut";
+import { getUserProfile } from "@/auth/authService";
+import { DEFAULT_TOILET_IMAGE, DEFAULT_USER_AVATAR } from "@/constants/Images";
 import { fetchComments } from "@/functions/api/comments";
 import { fetchToilets } from "@/functions/api/toilet";
 import { mapApiComment } from "@/functions/mappers/comments";
 import { mapApiToilet } from "@/functions/mappers/toilet";
+import type { ApiUser } from "@/types/api/ApiUser";
 import type { Comment } from "@/types/ui/Comment";
 import type { Toilet } from "@/types/ui/Toilet";
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_USER_AVATAR, DEFAULT_TOILET_IMAGE } from "@/constants/Images";
-import { getUserProfile } from "@/auth/authService";
-import type { ApiUser } from "@/types/api/ApiUser";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import PageHeader from "../../components/header";
+import { Statut } from "../../types/Statut";
+import { Tab } from "../../types/Tab";
 
 export default function ContributionsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [userProfile, setUserProfile] = useState<ApiUser | null>(null);
-  
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -36,7 +43,7 @@ export default function ContributionsScreen() {
   const { data: userComments = [] } = useQuery({
     queryKey: ["userComments"],
     queryFn: fetchComments,
-    select: (apiComments) => 
+    select: (apiComments) =>
       apiComments
         .filter((comment) => comment.user.id === userProfile?.id)
         .map(mapApiComment),
@@ -46,37 +53,137 @@ export default function ContributionsScreen() {
   const { data: userToilets = [] } = useQuery({
     queryKey: ["userToilets"],
     queryFn: fetchToilets,
-    select: (apiToilets) => 
+    select: (apiToilets) =>
       apiToilets
         .filter((toilet) => toilet.createdBy?.id === userProfile?.id)
         .map(mapApiToilet),
     enabled: !!userProfile,
   });
-  
+
   const data = {
     ajoute: userToilets,
     commentaires: userComments,
     signalements: [
-      { id: "28", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "29", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "30", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "31", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "32", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "33", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "34", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "35", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "36", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "37", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "38", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "39", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "40", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "41", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "42", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "43", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "44", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "45", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "46", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" },
-      { id: "47", title: "Pipi express", address: "897 Pine St", image: "https://picsum.photos/200/200?random=5" }
+      {
+        id: "28",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "29",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "30",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "31",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "32",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "33",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "34",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "35",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "36",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "37",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "38",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "39",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "40",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "41",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "42",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "43",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "44",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "45",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "46",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
+      {
+        id: "47",
+        title: "Pipi express",
+        address: "897 Pine St",
+        image: "https://picsum.photos/200/200?random=5",
+      },
     ],
   };
 
@@ -89,13 +196,18 @@ export default function ContributionsScreen() {
   const [selected, setSelected] = useState<Tab>("ajoute");
 
   useEffect(() => {
-    if (params.tab && (params.tab === "ajoute" || params.tab === "commentaires" || params.tab === "signalements")) {
+    if (
+      params.tab &&
+      (params.tab === "ajoute" ||
+        params.tab === "commentaires" ||
+        params.tab === "signalements")
+    ) {
       setSelected(params.tab as Tab);
     }
   }, [params.tab]);
 
   const handleBack = () => {
-    router.replace("/(tabs)/profile");
+    router.back();
   };
 
   const renderStatutBuffer = (statut: Statut) => {
@@ -122,44 +234,48 @@ export default function ContributionsScreen() {
 
     return (
       <View style={[styles.bufferBase, config.style]}>
-        <Text style={[styles.bufferText, config.textStyle]}>{config.label}</Text>
+        <Text style={[styles.bufferText, config.textStyle]}>
+          {config.label}
+        </Text>
       </View>
     );
   };
 
   const renderToiletItem = (toilet: Toilet) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.item}
       onPress={() => router.push(`/toilet/${toilet.id}`)}
     >
-      <Image 
-        source={{ uri: toilet.image || DEFAULT_TOILET_IMAGE }} 
-        style={styles.image} 
+      <Image
+        source={{ uri: toilet.image || DEFAULT_TOILET_IMAGE }}
+        style={styles.image}
       />
       <View style={styles.itemContent}>
         <View style={styles.toiletHeader}>
           <Text style={styles.title}>{toilet.name}</Text>
-          {toilet.accessible && (
-            <Text style={styles.accessibleIcon}>♿</Text>
-          )}
+          {toilet.accessible && <Text style={styles.accessibleIcon}>♿</Text>}
         </View>
         <View style={styles.toiletMeta}>
-          <Text style={[
-            styles.toiletMetaText,
-            { color: toilet.free ? "#4CAF50" : "#ff4444" }
-          ]}>
+          <Text
+            style={[
+              styles.toiletMetaText,
+              { color: toilet.free ? "#4CAF50" : "#ff4444" },
+            ]}
+          >
             {toilet.free ? "Gratuit" : "Payant"}
           </Text>
           <Text style={styles.separator}>·</Text>
-          <Text style={[
-            styles.toiletMetaText,
-            { color: toilet.isOpen ? "#4CAF50" : "#ff4444" }
-          ]}>
+          <Text
+            style={[
+              styles.toiletMetaText,
+              { color: toilet.isOpen ? "#4CAF50" : "#ff4444" },
+            ]}
+          >
             {toilet.isOpen === true
               ? "Ouvert"
               : toilet.isOpen === false
-              ? "Fermé"
-              : "Horaires inconnus"}
+                ? "Fermé"
+                : "Horaires inconnus"}
           </Text>
         </View>
       </View>
@@ -168,13 +284,13 @@ export default function ContributionsScreen() {
   );
 
   const renderCommentItem = (comment: Comment) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.item}
       onPress={() => router.push(`/toilet/${comment.toiletId}`)}
     >
-      <Image 
-        source={{ uri: comment.user.photoUrl || DEFAULT_USER_AVATAR }} 
-        style={styles.image} 
+      <Image
+        source={{ uri: comment.user.photoUrl || DEFAULT_USER_AVATAR }}
+        style={styles.image}
       />
       <View style={styles.itemContent}>
         <View style={styles.commentHeader}>
@@ -210,11 +326,11 @@ export default function ContributionsScreen() {
     if (selected === "commentaires") {
       return renderCommentItem(item);
     }
-    
+
     if (selected === "ajoute") {
       return renderToiletItem(item);
     }
-    
+
     return (
       <View style={styles.item}>
         <Image source={{ uri: item.image }} style={styles.image} />
@@ -227,7 +343,7 @@ export default function ContributionsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <PageHeader title="Profile" onBack={handleBack} />
 
       <View style={styles.content}>
@@ -237,7 +353,9 @@ export default function ContributionsScreen() {
           data={tabs}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => setSelected(item.id)}>
-              <Text style={[styles.tab, selected === item.id && styles.tabSelected]}>
+              <Text
+                style={[styles.tab, selected === item.id && styles.tabSelected]}
+              >
                 {item.label}
               </Text>
             </TouchableOpacity>
@@ -245,7 +363,7 @@ export default function ContributionsScreen() {
           keyExtractor={(item) => item.id}
           horizontal
           scrollEnabled={false}
-          contentContainerStyle={styles.tabs}       
+          contentContainerStyle={styles.tabs}
           ItemSeparatorComponent={() => <View style={{ width: 20 }} />}
         />
 
@@ -255,13 +373,13 @@ export default function ContributionsScreen() {
           renderItem={renderItem}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: "#fff",
   },
   content: {
@@ -281,7 +399,7 @@ const styles = StyleSheet.create({
     color: "black",
     fontWeight: "600",
   },
-  item: { 
+  item: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 15,
@@ -293,21 +411,21 @@ const styles = StyleSheet.create({
   itemWaiting: {
     opacity: 0.7,
   },
-  image: { 
-    width: 55, 
-    height: 55, 
+  image: {
+    width: 55,
+    height: 55,
     borderRadius: 10,
     marginRight: 15,
   },
   itemContent: {
     flex: 1,
   },
-  title: { 
-    fontSize: 16, 
+  title: {
+    fontSize: 16,
     fontWeight: "600",
     marginBottom: 4,
   },
-  address: { 
+  address: {
     color: "#888",
     fontSize: 14,
   },

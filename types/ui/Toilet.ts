@@ -1,3 +1,5 @@
+import { Statut } from "../Statut";
+
 export type Toilet = {
   id: string;
   name: string;
@@ -11,4 +13,25 @@ export type Toilet = {
   type?: string;
   image?: string;
   isOpen?: boolean;
+  statut: Statut;
+};
+
+export type RestroomType =
+  | "public"
+  | "cafe"
+  | "restaurant"
+  | "centre_commercial"
+  | "autre";
+
+export type Accessibility = "accessible" | "non_accessible" | "inconnue";
+export type Opening = "24_7" | "horaires_comm" | "inconnus";
+
+export type CreateToiletForm = {
+  name: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  restroomType: RestroomType;
+  accessibility: Accessibility;
+  opening: Opening;
 };
