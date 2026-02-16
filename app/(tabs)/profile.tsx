@@ -4,6 +4,7 @@ import { Colors } from "@/constants/Colors";
 import { DEFAULT_USER_AVATAR } from "@/constants/Images";
 import { Shadows } from "@/constants/Shadows";
 import { fetchComments } from "@/functions/api/comments";
+import { fetchReport, fetchReports } from "@/functions/api/reports";
 import { fetchToilets } from "@/functions/api/toilet";
 import { User } from "@/types/ui/User";
 import { withDefaultImage } from "@/utils/images";
@@ -80,6 +81,17 @@ export default function ProfileScreen() {
     enabled: !!userProfile,
   });
 
+  const { data: myReportData = [] } = useQuery({
+    queryKey: ["myReports", userProfile?.id],
+    queryFn: fetchReports,
+    select: (apiReports) => {
+      return apiReports.filter(
+        (report) => report.user.id === userProfile?.id
+      );
+    },
+    enabled: !!userProfile,
+  });
+
   const { data: myToiletsData = [] } = useQuery({
     queryKey: ["myToilets", userProfile?.id],
     queryFn: fetchToilets,
@@ -103,11 +115,20 @@ export default function ProfileScreen() {
     enabled: !!userProfile && userProfile?.type === "admin",
   });
 
+  const { data: allReportData = [] } = useQuery({
+    queryKey: ["allReport"],
+    queryFn: fetchReports,
+    enabled: !!userProfile && userProfile?.type === "admin",
+  });
+
+
   const myCommentsCount = myCommentsData.length;
   const myToiletsCount = myToiletsData.filter(toilet => toilet.status).length;
+  const myReportCount = myReportData.length;
   
   const allCommentsCount = allCommentsData.length;
   const allToiletsCount = allToiletsData.filter(toilet => toilet.status).length;
+  const allReportCount = allReportData.length;
 
   const myContributionItems = [
     {
@@ -128,7 +149,7 @@ export default function ProfileScreen() {
       id: "signalements",
       icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
       title: "Signalements",
-      subtitle: "0",
+      subtitle: myReportCount.toString(),
       route: "/profile/contributions?tab=signalements&scope=personal",
     },
   ];
@@ -152,7 +173,7 @@ export default function ProfileScreen() {
       id: "all-signalements",
       icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
       title: "Signalements",
-      subtitle: "0",
+      subtitle: allReportCount.toString(),
       route: "/profile/contributions?tab=signalements&scope=all",
     },
   ];

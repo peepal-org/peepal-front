@@ -5,11 +5,14 @@ import PageHeader from "../../components/header";
 import { Statut } from "../../types/Statut";
 import { fetchComments } from "@/functions/api/comments";
 import { fetchToilets } from "@/functions/api/toilet";
+import { fetchReports } from "@/functions/api/reports";
 import { mapApiComment } from "@/functions/mappers/comments";
 import { mapApiToilet } from "@/functions/mappers/toilet";
+import { mapApiReport } from "@/functions/mappers/reports";
 import type { ApiUser } from "@/types/api/ApiUser";
 import type { Comment } from "@/types/ui/Comment";
 import type { Toilet } from "@/types/ui/Toilet";
+import type { Report } from "@/types/ui/Report";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_USER_AVATAR, DEFAULT_TOILET_IMAGE } from "@/constants/Images";
 import { getUserProfile } from "@/auth/authService";
@@ -43,8 +46,10 @@ export default function ContributionsScreen() {
       // Invalider toutes les queries pour forcer un refetch
       queryClient.invalidateQueries({ queryKey: ["myComments"] });
       queryClient.invalidateQueries({ queryKey: ["myToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["myReports"] });
       queryClient.invalidateQueries({ queryKey: ["allComments"] });
       queryClient.invalidateQueries({ queryKey: ["allToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["allReports"] });
     }, [queryClient])
   );
 
@@ -81,6 +86,20 @@ export default function ContributionsScreen() {
     refetchOnWindowFocus: true,
   });
 
+  const { data: myReports = [] } = useQuery({
+    queryKey: ["myReports", userProfile?.id],
+    queryFn: fetchReports,
+    select: (apiReports) => {
+      return apiReports
+        .filter((report) => report.user.id === userProfile?.id)
+        .map(mapApiReport);
+    },
+    enabled: !!userProfile && scope === "personal",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
   // Toutes les contributions (pour les admins uniquement)
   const { data: allComments = [] } = useQuery({
     queryKey: ["allComments"],
@@ -108,13 +127,26 @@ export default function ContributionsScreen() {
     refetchOnWindowFocus: true,
   });
 
+  const { data: allReports = [] } = useQuery({
+    queryKey: ["allReports"],
+    queryFn: fetchReports,
+    select: (apiReports) => {
+      return apiReports.map(mapApiReport);
+    },
+    enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
   // Sélectionner les bonnes données selon le scope
   const userComments = scope === "all" ? allComments : myComments;
   const userToilets = scope === "all" ? allToilets : myToilets;
+  const userReports = scope === "all" ? allReports : myReports;
 
   const data = {
     commentaires: userComments,
-    signalements: [],
+    signalements: userReports,
   };
 
   const tabs = [
@@ -155,6 +187,26 @@ export default function ContributionsScreen() {
         </Text>
       </View>
     );
+  };
+
+  const getReportTypeLabel = (type: Report["type"]) => {
+    const labels = {
+      closed: "Fermé",
+      dirty: "Sale",
+      maintenance: "En maintenance",
+      other: "Autre",
+    };
+    return labels[type];
+  };
+
+  const getReportTypeIcon = (type: Report["type"]) => {
+    const icons = {
+      closed: "lock-closed",
+      dirty: "alert-circle",
+      maintenance: "construct",
+      other: "help-circle",
+    };
+    return icons[type];
   };
 
   const renderToiletItem = (toilet: Toilet) => (
@@ -233,6 +285,45 @@ export default function ContributionsScreen() {
           })}
           <Text style={styles.ratingText}>{comment.rating}/5</Text>
         </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderReportItem = (report: Report) => (
+    <TouchableOpacity
+      style={styles.item}
+      onPress={() => router.push(`/toilet/${report.toiletId}`)}
+    >
+      <Image
+        source={{ uri: report.userPhotoUrl || DEFAULT_USER_AVATAR }}
+        style={styles.image}
+      />
+      <View style={styles.itemContent}>
+        <View style={styles.commentHeader}>
+          <Text style={styles.title}>{report.userName}</Text>
+          <Text style={styles.dateLabel}>{report.dateLabel}</Text>
+        </View>
+
+        <Text style={styles.reportToiletName} numberOfLines={1}>
+          {report.toiletName}
+        </Text>
+
+        <View style={styles.reportTypeContainer}>
+          <Ionicons 
+            name={getReportTypeIcon(report.type)} 
+            size={16} 
+            color="#666" 
+          />
+          <Text style={styles.reportTypeText}>
+            {getReportTypeLabel(report.type)}
+          </Text>
+        </View>
+
+        {report.description && (
+          <Text style={styles.reportDescription} numberOfLines={2}>
+            {report.description}
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -338,7 +429,7 @@ export default function ContributionsScreen() {
           <FlatList
             data={data.signalements}
             keyExtractor={(item) => `signalements-${item.id}`}
-            renderItem={() => null}
+            renderItem={({ item }) => renderReportItem(item)}
             ListEmptyComponent={EmptySignalementsComponent}
           />
         )}
@@ -465,6 +556,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     marginLeft: 6,
+  },
+  reportToiletName: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 6,
+    fontWeight: "500",
+  },
+  reportTypeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  },
+  reportTypeText: {
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "500",
+  },
+  reportDescription: {
+    fontSize: 13,
+    color: "#888",
+    fontStyle: "italic",
   },
   bufferBase: {
     paddingHorizontal: 12,
