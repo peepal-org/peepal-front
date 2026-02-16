@@ -24,10 +24,13 @@ export default function ToiletDetailsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      queryClient.invalidateQueries({ queryKey: ['toilet-detail', toiletViewModel.toilet] });
-    }, [queryClient, toiletViewModel.toilet])
+      if (toiletViewModel.toilet?.id) {
+        queryClient.invalidateQueries({ queryKey: ['toilets', Number(toiletViewModel.toilet.id)] });
+        queryClient.invalidateQueries({ queryKey: ['comments', Number(toiletViewModel.toilet.id)] });
+      }
+    }, [queryClient, toiletViewModel.toilet?.id])
   );
-
+  
   if (toiletViewModel.isLoading) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: theme.background }]}>

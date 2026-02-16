@@ -20,6 +20,7 @@ export function useToiletDetailViewModel() {
 
   const toiletIdNum = Number(id);
 
+  // 🎯 Charger le profil utilisateur
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -32,6 +33,7 @@ export function useToiletDetailViewModel() {
     loadProfile();
   }, []);
 
+  // Fetch toilet
   const { data: apiToilet, isLoading } = useQuery({
     queryKey: ["toilets", toiletIdNum],
     queryFn: () => fetchToiletById(toiletIdNum),
@@ -42,6 +44,7 @@ export function useToiletDetailViewModel() {
     ? mapApiToilet(apiToilet)
     : undefined;
 
+  // Fetch comments
   const { data: comments = [] } = useQuery({
     queryKey: ["comments", toiletIdNum],
     queryFn: fetchComments,
@@ -52,20 +55,24 @@ export function useToiletDetailViewModel() {
         .map(mapApiComment),
   });
 
+  // Rating
   const ratingCount = comments.length;
   const averageRating =
     ratingCount === 0
       ? null
       : comments.reduce((sum, c) => sum + c.rating, 0) / ratingCount;
 
+  // Derived
   const isOpen = toilet?.isOpen ?? true;
   const hoursLabel = toilet?.openingHours ?? "Horaires inconnus";
   const accessibilityLabel = toilet?.accessible
     ? "Accessible UFR"
     : "Non accessible";
 
+  // 🎯 Admin check
   const isAdmin = userProfile?.type === "admin";
 
+  // Reverse geocoding
   useEffect(() => {
     const lat = toilet?.latitude;
     const lon = toilet?.longitude;
@@ -87,6 +94,7 @@ export function useToiletDetailViewModel() {
     };
   }, [toilet?.latitude, toilet?.longitude]);
 
+  // Actions
   const goBack = useCallback(() => router.back(), [router]);
 
   const openInMaps = useCallback(() => {
@@ -113,28 +121,42 @@ export function useToiletDetailViewModel() {
     });
   }, [router, toiletIdNum]);
 
-  const handleUpdateStatus = useCallback(
-    async (status: "accepted" | "rejected") => {
-      if (!isAdmin || !toilet) return;
+ const handleUpdateStatus = useCallback(
+  async (status: "accepted" | "rejected") => {
+    if (!isAdmin || !toilet) return;
 
-      try {
-        await updateToilet(Number(toilet.id), { status });
-        await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
-        await queryClient.invalidateQueries({ queryKey: ["toilets"] });
-        await queryClient.refetchQueries({ queryKey: ["toilets", toiletIdNum] });
+    try {
+      // ✅ 1. Mise à jour optimiste du cache AVANT l'appel API
+      queryClient.setQueryData(["toilets", toiletIdNum], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          status: status,
+          statut: status, // Par sécurité, on met à jour les deux variantes
+        };
+      });
 
-        Alert.alert(
-          "Succès",
-          status === "accepted"
-            ? "Toilettes acceptées avec succès"
-            : "Toilettes rejetées avec succès"
-        );
-      } catch (error) {
-        Alert.alert("Erreur", "Une erreur s'est produite");
-      }
-    },
-    [isAdmin, toilet, queryClient, toiletIdNum]
-  );
+      // ✅ 2. Appel API
+      await updateToilet(Number(toilet.id), { status });
+      
+      // ✅ 3. Refetch pour synchroniser avec le serveur
+      await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
+
+      Alert.alert(
+        "Succès",
+        status === "accepted"
+          ? "Toilettes acceptées avec succès"
+          : "Toilettes rejetées avec succès"
+      );
+
+    } catch (error) {
+      // ✅ 4. En cas d'erreur, on rollback
+      await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
+      Alert.alert("Erreur", "Une erreur s'est produite");
+    }
+  },
+  [isAdmin, toilet, queryClient, toiletIdNum]
+);
 
   const handleAcceptToilet = useCallback(() => {
     Alert.alert(
@@ -179,8 +201,7 @@ export function useToiletDetailViewModel() {
           onPress: async () => {
             try {
               await deleteToilet(Number(toilet.id));
-              await queryClient.invalidateQueries({ queryKey: ["toilets"] });
-              await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
+              queryClient.invalidateQueries({ queryKey: ["toilets"] });
               Alert.alert("Succès", "Toilettes supprimées avec succès");
               router.back();
             } catch (error) {
@@ -193,7 +214,7 @@ export function useToiletDetailViewModel() {
         },
       ]
     );
-  }, [isAdmin, toilet, queryClient, router, toiletIdNum]);
+  }, [isAdmin, toilet, queryClient, router]);
 
   const handleDeleteComment = useCallback(
     (commentId: number) => {
@@ -210,8 +231,9 @@ export function useToiletDetailViewModel() {
             onPress: async () => {
               try {
                 await deleteComment(commentId);
-                await queryClient.invalidateQueries({ queryKey: ["comments", toiletIdNum] });
-                await queryClient.refetchQueries({ queryKey: ["comments", toiletIdNum] });
+                queryClient.invalidateQueries({
+                  queryKey: ["comments", toiletIdNum],
+                });
                 Alert.alert("Succès", "Commentaire supprimé avec succès");
               } catch (error) {
                 Alert.alert(
@@ -245,6 +267,11 @@ export function useToiletDetailViewModel() {
     handleAcceptToilet, 
     handleRejectToilet, 
     handleDeleteToilet, 
-    handleDeleteComment,
+    handleDeleteComment, 
   };
+}
+
+async function fetchToiletDetails(toiletId: string) {
+  const response = await fetch(`/api/toilets/${toiletId}`);
+  return response.json();
 }
