@@ -3,6 +3,7 @@ import { ApiUser } from "./ApiUser";
 export type ApiToilet = {
   id: number;
   name: string;
+  external_id: string;
   address: string;
   latitude: number;
   longitude: number;
