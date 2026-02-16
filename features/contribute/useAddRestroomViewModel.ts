@@ -46,7 +46,7 @@ export function useAddRestroomViewModel() {
       router.replace("/(tabs)/map");
     },
     onError: (err: unknown) => {
-      console.log("=== ERREUR CRÉATION TOILETTE ===", err);
+      // console.log("=== ERREUR CRÉATION TOILETTE ===", err);
       toast.error(getErrorMessage(err, "Impossible d'ajouter la toilette."));
     },
   });
@@ -107,7 +107,7 @@ export function useAddRestroomViewModel() {
         createdBy: profile.id,
       };
 
-      console.log("=== PAYLOAD ENVOYÉ ===", JSON.stringify(payload, null, 2));
+      // console.log("=== PAYLOAD ENVOYÉ ===", JSON.stringify(payload, null, 2));
       createToiletMutation.mutate(payload);
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Impossible de récupérer ton profil."));
