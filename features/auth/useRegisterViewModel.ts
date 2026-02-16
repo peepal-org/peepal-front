@@ -1,5 +1,7 @@
 import { register } from "@/auth/authService";
 import { useAuth } from "@/auth/useAuth";
+import { useToast } from "@/components/toast/useToast";
+import { getErrorMessage } from "@/utils/errorHandler";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
@@ -12,6 +14,7 @@ export function useRegisterViewModel() {
 
   const { refreshAuth } = useAuth();
   const router = useRouter();
+  const toast = useToast();
 
   const isFormValid =
     name.trim().length > 0 &&
@@ -27,9 +30,7 @@ export function useRegisterViewModel() {
       await refreshAuth();
       router.replace("/(tabs)/map");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Erreur d'inscription";
-      alert(message);
+      toast.error(getErrorMessage(err, "Erreur d'inscription."));
     } finally {
       setIsLoading(false);
     }

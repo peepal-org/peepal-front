@@ -1,14 +1,16 @@
 import { getUserProfile } from "@/auth/authService";
+import { useToast } from "@/components/toast/useToast";
 import { createComment } from "@/functions/api/comments";
+import { getErrorMessage } from "@/utils/errorHandler";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Alert } from "react-native";
 
 export function useRateViewModel() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const toiletIdNum = useMemo(() => Number(id), [id]);
 
@@ -23,9 +25,7 @@ export function useRateViewModel() {
       router.back();
     },
     onError: (err: unknown) => {
-      const message =
-        err instanceof Error ? err.message : "Impossible de publier l'avis.";
-      Alert.alert("Erreur", message);
+      toast.error(getErrorMessage(err, "Impossible de publier l'avis."));
     },
   });
 
@@ -37,22 +37,19 @@ export function useRateViewModel() {
 
   const handleSubmit = useCallback(async () => {
     if (!Number.isFinite(toiletIdNum)) {
-      Alert.alert("Erreur", "ID toilette invalide.");
+      toast.error("ID toilette invalide.");
       return;
     }
 
     if (!rating || comment.trim().length === 0) {
-      Alert.alert(
-        "Info",
-        "Merci de choisir une note et d'ajouter un commentaire 🙂",
-      );
+      toast.warning("Merci de choisir une note et d'ajouter un commentaire");
       return;
     }
 
     try {
       const profile = await getUserProfile();
       if (!profile?.id) {
-        Alert.alert("Erreur", "Profil introuvable. Reconnecte-toi.");
+        toast.error("Profil introuvable. Reconnecte-toi.");
         return;
       }
 
@@ -63,13 +60,9 @@ export function useRateViewModel() {
         content: comment.trim(),
       });
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Impossible de récupérer ton profil.";
-      Alert.alert("Erreur", message);
+      toast.error(getErrorMessage(err, "Impossible de récupérer ton profil."));
     }
-  }, [toiletIdNum, rating, comment, createCommentMutation]);
+  }, [toiletIdNum, rating, comment, toast, createCommentMutation]);
 
   const goBack = useCallback(() => router.back(), [router]);
 

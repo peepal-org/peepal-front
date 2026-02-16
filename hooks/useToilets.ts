@@ -2,6 +2,8 @@ import { apiFetch } from "@/functions/api";
 import { mapApiToilet } from "@/functions/mappers/toilet";
 import type { ApiToilet } from "@/types/api/ApiToilet";
 import type { Toilet } from "@/types/ui/Toilet";
+import { getErrorMessage } from "@/utils/errorHandler";
+import { filterToilets } from "@/utils/filterToilets";
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
@@ -33,8 +35,9 @@ export function useToilets() {
     select: (apiToilets) => apiToilets.map(mapApiToilet) as Toilet[],
   });
 
-  const apiError =
-    error instanceof Error ? error.message : error ? String(error) : null;
+  const apiError = error
+    ? getErrorMessage(error, "Erreur de chargement des toilettes.")
+    : null;
 
   // Location permission
   useEffect(() => {
@@ -54,30 +57,21 @@ export function useToilets() {
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
         });
-      } catch {
-        setLocationError("Impossible de récupérer la position");
+      } catch (err: unknown) {
+        setLocationError(
+          getErrorMessage(err, "Impossible de récupérer la position."),
+        );
       }
     })();
   }, []);
 
   // Apply filters and search
-  let filteredToilets = toilets;
-
-  if (filterFree) {
-    filteredToilets = filteredToilets.filter((t) => t.free);
-  }
-  if (filterAccessible) {
-    filteredToilets = filteredToilets.filter((t) => t.accessible);
-  }
-  if (filterOpenNow) {
-    filteredToilets = filteredToilets.filter((t) => t.isOpen === true);
-  }
-  if (searchQuery.trim().length > 0) {
-    const q = searchQuery.trim().toLowerCase();
-    filteredToilets = filteredToilets.filter((t) =>
-      t.name.toLowerCase().includes(q),
-    );
-  }
+  const filteredToilets = filterToilets(toilets, {
+    filterFree,
+    filterAccessible,
+    filterOpenNow,
+    searchQuery,
+  });
 
   const handlePressToilet = useCallback(
     (id: string) => router.push(`/toilet/${id}`),

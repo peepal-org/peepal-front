@@ -1,5 +1,7 @@
 import { login } from "@/auth/authService";
 import { useAuth } from "@/auth/useAuth";
+import { useToast } from "@/components/toast/useToast";
+import { getErrorMessage } from "@/utils/errorHandler";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
@@ -11,6 +13,7 @@ export function useLoginViewModel() {
 
   const { refreshAuth } = useAuth();
   const router = useRouter();
+  const toast = useToast();
 
   const isFormValid = email.trim().length > 0 && password.trim().length > 0;
 
@@ -23,9 +26,7 @@ export function useLoginViewModel() {
       await refreshAuth();
       router.replace("/(tabs)/map");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Erreur de connexion";
-      alert(message);
+      toast.error(getErrorMessage(err, "Erreur de connexion."));
     } finally {
       setIsLoading(false);
     }

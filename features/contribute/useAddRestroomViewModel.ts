@@ -1,12 +1,13 @@
 import { getUserProfile } from "@/auth/authService";
+import { useToast } from "@/components/toast/useToast";
 import { apiFetch } from "@/functions/api";
 import { CreateToiletPayload } from "@/types/api/ApiToilet";
-import { getAddressFromCoords } from "@/utils/geocoding";
+import { getErrorMessage } from "@/utils/errorHandler";
+import { getAddressFromCoords, getCoordsFromAddress } from "@/utils/geocoding";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert } from "react-native";
 
 type RestroomType =
   | "public"
@@ -20,6 +21,7 @@ type Opening = "24_7" | "horaires_comm" | "inconnus";
 export function useAddRestroomViewModel() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   // Form state
   const [name, setName] = useState("");
@@ -40,16 +42,12 @@ export function useAddRestroomViewModel() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["toilets"] });
-      Alert.alert("Toilette ajoutée 🎉", "Merci pour ta contribution.", [
-        { text: "OK", onPress: () => router.replace("/(tabs)/map") },
-      ]);
+      toast.success("Toilette ajoutée 🎉 Merci pour ta contribution.");
+      router.replace("/(tabs)/map");
     },
     onError: (err: unknown) => {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Impossible d'ajouter la toilette.";
-      Alert.alert("Erreur", message);
+      console.log("=== ERREUR CRÉATION TOILETTE ===", err);
+      toast.error(getErrorMessage(err, "Impossible d'ajouter la toilette."));
     },
   });
 
@@ -58,28 +56,33 @@ export function useAddRestroomViewModel() {
   // Actions
   const handleSubmit = useCallback(async () => {
     if (!name.trim()) {
-      Alert.alert(
-        "Nom manquant",
-        "Merci de donner un nom (ex: WC République).",
-      );
+      toast.warning("Merci de donner un nom (ex: WC République).");
       return;
     }
     if (!address.trim()) {
-      Alert.alert("Adresse manquante", "Merci de renseigner une adresse.");
+      toast.warning("Merci de renseigner une adresse.");
       return;
     }
-    if (latitude == null || longitude == null) {
-      Alert.alert(
-        "Coordonnées manquantes",
-        "Utilise ta position ou renseigne des coordonnées.",
-      );
-      return;
+
+    let lat = latitude;
+    let lon = longitude;
+
+    if (lat == null || lon == null) {
+      const coords = await getCoordsFromAddress(address.trim());
+      if (!coords) {
+        toast.warning("Adresse introuvable. Utilise ta position GPS.");
+        return;
+      }
+      lat = coords.latitude;
+      lon = coords.longitude;
+      setLatitude(lat);
+      setLongitude(lon);
     }
 
     try {
       const profile = await getUserProfile();
       if (!profile?.id) {
-        Alert.alert("Erreur", "Profil introuvable. Reconnecte-toi.");
+        toast.error("Profil introuvable. Reconnecte-toi.");
         return;
       }
 
@@ -90,34 +93,35 @@ export function useAddRestroomViewModel() {
             ? "Horaires commerciaux"
             : "Inconnus";
 
-      createToiletMutation.mutate({
+      const payload = {
         name: name.trim(),
         address: address.trim(),
-        latitude,
-        longitude,
-        type: type === "public" ? "public" : "private",
+        latitude: lat,
+        longitude: lon,
+        types: [type === "public" ? "public" : "private"],
+        external_id: `peepal-user-${profile.id}-${Date.now()}`,
         accessible: accessibility === "accessible",
         free: true,
         clean: true,
         opening_hours,
         createdBy: profile.id,
-      });
+      };
+
+      console.log("=== PAYLOAD ENVOYÉ ===", JSON.stringify(payload, null, 2));
+      createToiletMutation.mutate(payload);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Impossible de récupérer ton profil.";
-      Alert.alert("Erreur", message);
+      toast.error(getErrorMessage(err, "Impossible de récupérer ton profil."));
     }
   }, [
     name,
     address,
     latitude,
     longitude,
-    type,
-    accessibility,
+    toast,
     opening,
     createToiletMutation,
+    type,
+    accessibility,
   ]);
 
   const handleUseLocation = useCallback(async () => {
@@ -126,8 +130,7 @@ export function useAddRestroomViewModel() {
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Localisation refusée",
+        toast.warning(
           "Nous avons besoin de ta localisation pour pré-remplir l'adresse.",
         );
         return;
@@ -143,15 +146,12 @@ export function useAddRestroomViewModel() {
 
       const addr = await getAddressFromCoords(lat, lon);
       setAddress(addr);
-    } catch {
-      Alert.alert(
-        "Erreur",
-        "Impossible de récupérer ta position pour le moment.",
-      );
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Impossible de récupérer ta position."));
     } finally {
       setIsLocLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   const goBack = useCallback(() => router.back(), [router]);
 

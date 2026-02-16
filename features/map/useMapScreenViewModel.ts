@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/Colors";
 import { useToilets } from "@/hooks/useToilets";
+import { getErrorMessage } from "@/utils/errorHandler";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -64,8 +65,10 @@ export function useMapScreenViewModel() {
           600,
         );
       }
-    } catch {
-      toilets.setLocationError("Impossible de recentrer sur votre position");
+    } catch (err: unknown) {
+      toilets.setLocationError(
+        getErrorMessage(err, "Impossible de recentrer sur votre position."),
+      );
     }
   }, [toilets]);
 

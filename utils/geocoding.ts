@@ -2,7 +2,7 @@ import * as Location from "expo-location";
 
 export async function getAddressFromCoords(
   lat: number,
-  lon: number
+  lon: number,
 ): Promise<string> {
   try {
     const results = await Location.reverseGeocodeAsync({
@@ -25,4 +25,13 @@ export async function getAddressFromCoords(
   }
 
   return "Adresse inconnue";
+}
+
+export async function getCoordsFromAddress(address: string) {
+  const results = await Location.geocodeAsync(address);
+  if (results.length === 0) return null;
+  return {
+    latitude: results[0].latitude,
+    longitude: results[0].longitude,
+  };
 }
