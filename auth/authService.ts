@@ -1,6 +1,5 @@
-import { ENV } from "@/config/env";
-import { API_URL } from "@/functions/api";
-import { User } from "@/models/user";
+import { API_URL, ENV } from "@/config/env";
+import { User } from "@/types/ui/User";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const saveUserProfile = async (user: User) => {
@@ -37,7 +36,7 @@ export const login = async (
       .json()
       .catch(() => ({ message: `Erreur HTTP ${res.status}` }));
     throw new Error(
-      errorData.message || `Échec de la connexion (${res.status})`
+      errorData.message || `Échec de la connexion (${res.status})`,
     );
   }
 
@@ -58,7 +57,7 @@ export const login = async (
 export const register = async (
   name: string,
   email: string,
-  password_hash: string
+  password_hash: string,
 ) => {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -71,7 +70,7 @@ export const register = async (
       .json()
       .catch(() => ({ message: `Erreur HTTP ${res.status}` }));
     throw new Error(
-      errorData.message || `Échec de l'inscription (${res.status})`
+      errorData.message || `Échec de l'inscription (${res.status})`,
     );
   }
 
@@ -99,7 +98,7 @@ export const getToken = async () => {
 
 export const fetchUserProfile = async (): Promise<User> => {
   const token = await getToken();
-  
+
   if (!token) {
     throw new Error("Vous devez être connecté pour accéder au profil");
   }
@@ -107,14 +106,18 @@ export const fetchUserProfile = async (): Promise<User> => {
   const res = await fetch(`${API_URL}/users/me`, {
     method: "GET",
     headers: {
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   });
 
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
-    throw new Error(errorData.message || `Échec de la récupération du profil (${res.status})`);
+    const errorData = await res
+      .json()
+      .catch(() => ({ message: `Erreur HTTP ${res.status}` }));
+    throw new Error(
+      errorData.message || `Échec de la récupération du profil (${res.status})`,
+    );
   }
 
   const userProfile = await res.json();
@@ -127,7 +130,7 @@ export const updateProfile = async (updates: {
   photo_url?: string | null;
 }): Promise<User> => {
   const token = await getToken();
-  
+
   if (!token) {
     throw new Error("Vous devez être connecté pour modifier votre profil");
   }
@@ -135,15 +138,19 @@ export const updateProfile = async (updates: {
   const res = await fetch(`${API_URL}/users/me`, {
     method: "PATCH",
     headers: {
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(updates),
   });
 
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
-    throw new Error(errorData.message || `Échec de la mise à jour du profil (${res.status})`);
+    const errorData = await res
+      .json()
+      .catch(() => ({ message: `Erreur HTTP ${res.status}` }));
+    throw new Error(
+      errorData.message || `Échec de la mise à jour du profil (${res.status})`,
+    );
   }
 
   const updatedUser = await res.json();
@@ -153,17 +160,17 @@ export const updateProfile = async (updates: {
 
 export const uploadProfilePhoto = async (imageUri: string): Promise<string> => {
   const token = await getToken();
-  
+
   if (!token) {
     throw new Error("Vous devez être connecté pour uploader une photo");
   }
 
   const formData = new FormData();
-  const filename = imageUri.split('/').pop() || 'photo.jpg';
+  const filename = imageUri.split("/").pop() || "photo.jpg";
   const match = /\.(\w+)$/.exec(filename);
-  const type = match ? `image/${match[1]}` : 'image/jpeg';
+  const type = match ? `image/${match[1]}` : "image/jpeg";
 
-  formData.append('file', {
+  formData.append("file", {
     uri: imageUri,
     name: filename,
     type: type,
@@ -172,14 +179,18 @@ export const uploadProfilePhoto = async (imageUri: string): Promise<string> => {
   const res = await fetch(`${API_URL}/users/upload-photo`, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
     body: formData,
   });
 
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
-    throw new Error(errorData.message || `Échec de l'upload de la photo (${res.status})`);
+    const errorData = await res
+      .json()
+      .catch(() => ({ message: `Erreur HTTP ${res.status}` }));
+    throw new Error(
+      errorData.message || `Échec de l'upload de la photo (${res.status})`,
+    );
   }
 
   const data = await res.json();

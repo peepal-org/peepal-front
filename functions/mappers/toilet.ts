@@ -21,7 +21,7 @@ function parseTimeToMinutes(hhmm: string): number | null {
 
 function computeIsOpen(
   openingHoursRaw?: string | null,
-  now = new Date()
+  now = new Date(),
 ): boolean | undefined {
   const s = (openingHoursRaw ?? "").trim().toLowerCase();
   if (!s) return undefined;
@@ -85,9 +85,9 @@ export function mapApiToilet(api: ApiToilet): Toilet {
 
     address: api.address,
     openingHours: api.opening_hours,
-    type: api.type,
-
+    type: api.types?.[0] ?? "public",
     image: undefined,
     isOpen: computeIsOpen(api.opening_hours),
+    statut: "accepted", // to change when  its handled in backend
   };
 }

@@ -1,14 +1,16 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert } from "react-native";
-import { router } from "expo-router";
+import { useToast } from "@/components/toast/useToast";
 import { apiFetch } from "@/functions/api";
-import { ReportDto } from "@/types/api/ApiReport";
+import { Report } from "@/types/api/ApiReport";
+import { getErrorMessage } from "@/utils/errorHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
 
 export const useCreateReportMutation = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   return useMutation({
-    mutationFn: async (payload: ReportDto) =>
+    mutationFn: async (payload: Report) =>
       apiFetch("/reports", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -16,15 +18,11 @@ export const useCreateReportMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reports"] });
 
-      Alert.alert("Rapport envoyé ✅", "Merci pour ta contribution.", [
-        { text: "OK", onPress: () => router.replace("/(tabs)/map") },
-      ]);
+      toast.success("Rapport envoyé ✅ Merci pour ta contribution.");
+      router.replace("/(tabs)/map");
     },
-    onError: (err: any) => {
-      Alert.alert(
-        "Erreur",
-        err?.message ?? "Impossible d’envoyer le rapport."
-      );
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, "Impossible d'envoyer le rapport."));
     },
   });
 };

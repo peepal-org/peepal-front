@@ -1,11 +1,15 @@
-import { getUserProfile, logout } from "@/auth/authService";
+import { getUserProfile } from "@/auth/authService";
+import { useAuth } from "@/auth/useAuth";
 import { Colors } from "@/constants/Colors";
 import { DEFAULT_USER_AVATAR } from "@/constants/Images";
 import { Shadows } from "@/constants/Shadows";
-import { User } from "@/models/user";
+import { fetchComments } from "@/functions/api/comments";
+import { fetchToilets } from "@/functions/api/toilet";
+import { User } from "@/types/ui/User";
 import { withDefaultImage } from "@/utils/images";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
@@ -18,9 +22,6 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { fetchComments } from "@/functions/api/comments";
-import { fetchToilets } from "@/functions/api/toilet";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const { width, height } = Dimensions.get("window");
 
@@ -37,8 +38,9 @@ export default function ProfileScreen() {
   const queryClient = useQueryClient();
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { signOut } = useAuth();
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       const profile = await getUserProfile();
@@ -48,20 +50,23 @@ export default function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadProfile();
-  }, []);
+  }, [loadProfile]);
 
   useFocusEffect(
     useCallback(() => {
       loadProfile();
+      queryClient.invalidateQueries({ queryKey: ["userComments"] });
+      queryClient.invalidateQueries({ queryKey: ["userToilets"] });
+    
       queryClient.invalidateQueries({ queryKey: ["myComments"] });
       queryClient.invalidateQueries({ queryKey: ["myToilets"] });
       queryClient.invalidateQueries({ queryKey: ["allComments"] });
       queryClient.invalidateQueries({ queryKey: ["allToilets"] });
-    }, [])
+    }, [loadProfile, queryClient]),
   );
 
   const { data: myCommentsData = [] } = useQuery({
@@ -164,9 +169,8 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
-      await logout();
-      setUserProfile(null);
-      router.replace("/login");
+      await signOut();
+      router.replace("/auth/login");
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
     }
@@ -202,7 +206,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <Image
             source={{
-              uri: withDefaultImage(userProfile.photo_url, DEFAULT_USER_AVATAR),
+              uri: withDefaultImage(userProfile.photoUrl, DEFAULT_USER_AVATAR),
             }}
             style={[styles.avatar, Shadows.dp4]}
           />
@@ -210,7 +214,7 @@ export default function ProfileScreen() {
           <Text style={[styles.username, { color: theme.text }]}>
             {userProfile.name}
           </Text>
-          
+
           <View style={styles.levelPointsContainer}>
             <View style={styles.levelContainer}>
               <Ionicons name="trophy-outline" size={20} color={theme.primary} />
@@ -218,7 +222,7 @@ export default function ProfileScreen() {
                 Niveau {userProfile.level}
               </Text>
             </View>
-            
+
             <View style={styles.pointsContainer}>
               <Ionicons name="star" size={20} color={theme.primary} />
               <Text style={[styles.levelPointsText, { color: theme.text }]}>
@@ -279,7 +283,12 @@ export default function ProfileScreen() {
                   <Text style={[styles.flatListTitle, { color: theme.text }]}>
                     {item.title}
                   </Text>
-                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                  <Text
+                    style={[
+                      styles.flatListSubtitle,
+                      { color: theme.textMuted },
+                    ]}
+                  >
                     {item.subtitle}
                   </Text>
                 </View>
@@ -340,7 +349,12 @@ export default function ProfileScreen() {
                   <Text style={[styles.flatListTitle, { color: theme.text }]}>
                     {item.title}
                   </Text>
-                  <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                  <Text
+                    style={[
+                      styles.flatListSubtitle,
+                      { color: theme.textMuted },
+                    ]}
+                  >
                     {item.subtitle}
                   </Text>
                 </View>
@@ -401,8 +415,8 @@ const styles = StyleSheet.create({
     borderRadius: scale(50),
     marginBottom: verticalScale(10),
   },
-  username: { 
-    fontSize: scale(22), 
+  username: {
+    fontSize: scale(22),
     fontWeight: "bold",
     marginBottom: verticalScale(10),
   },

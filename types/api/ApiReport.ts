@@ -1,6 +1,6 @@
-export type ReportDto = {
+export type Report = {
   userId: number;
   toiletId: number;
-  type: 'closed' | 'dirty' | 'maintenance' | 'other';
+  type: "closed" | "dirty" | "maintenance" | "other";
   description: string;
-}
+};

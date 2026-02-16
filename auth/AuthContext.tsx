@@ -1,31 +1,74 @@
-import React, { createContext, useState, useEffect, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-interface User {
-    token: string;
-}
+import React, {
+  createContext,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+import { User } from "../types/ui/User";
+import { setForceLogoutHandler } from "./authEvents";
+import { logout as authLogout, getToken, getUserProfile } from "./authService";
 
 interface AuthContextType {
-    user: User | null;
-    setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  isAuthenticated: boolean;
+  user: User | null;
+  isLoading: boolean;
+  refreshAuth: () => Promise<void>; // refresh after login
+  signOut: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const loadToken = async () => {
-            const token = await AsyncStorage.getItem("token");
-            if (token) setUser({ token });
-        };
-        loadToken();
-    }, []);
+  // Check AsyncStorage after login
+  const refreshAuth = useCallback(async () => {
+    try {
+      const token = await getToken();
+      if (token) {
+        const profile = await getUserProfile();
+        setUser(profile);
+        setIsAuthenticated(true);
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    } catch (err) {
+      console.error("refreshAuth - erreur:", err);
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    return (
-        <AuthContext.Provider value={{ user, setUser }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  // 3. On mounted check if user is connected
+  useEffect(() => {
+    refreshAuth();
+  }, [refreshAuth]);
+
+  // Logout : clean Async storage and update UI
+  const signOut = useCallback(async () => {
+    await authLogout();
+    setUser(null);
+    setIsAuthenticated(false);
+  }, []);
+
+  useEffect(() => {
+    setForceLogoutHandler(() => {
+      setUser(null);
+      setIsAuthenticated(false);
+    });
+  }, []);
+
+  return (
+    <AuthContext.Provider
+      value={{ isAuthenticated, user, isLoading, refreshAuth, signOut }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }

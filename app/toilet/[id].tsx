@@ -9,11 +9,12 @@ import { getAddressFromCoords } from "@/utils/geocoding";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useToiletDetailViewModel } from "@/features/toilet/useToiletDetailViewModel";
+import React from "react";
+
 import {
   Alert,
   Image,
-  Linking,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -38,8 +39,7 @@ function openInExternalMaps(toilet: Toilet) {
 }
 
 export default function ToiletDetailsScreen() {
-  const { id } = useLocalSearchParams();
-  const router = useRouter();
+  const toiletViewModel = useToiletDetailViewModel();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const [address, setAddress] = useState("Chargement de l'adresse…");
@@ -99,7 +99,8 @@ export default function ToiletDetailsScreen() {
     };
   }, [lat, lon]);
 
-  if (toiletLoading) {
+  // Loader simple
+  if (toiletViewModel.isLoading) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: theme.background }]}>
         <Text style={{ color: theme.textMuted }}>Chargement…</Text>
@@ -107,13 +108,16 @@ export default function ToiletDetailsScreen() {
     );
   }
 
-  if (!toilet) {
+  if (!toiletViewModel.toilet) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: theme.background }]}>
         <Text style={[styles.errorText, { color: theme.error }]}>🚽 Toilette introuvable</Text>
         <TouchableOpacity
-          style={[styles.secondaryButton, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={() => router.back()}
+          style={[
+            styles.secondaryButton,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+          onPress={toiletViewModel.goBack}
         >
           <Text style={[styles.secondaryButtonText, { color: theme.textMuted }]}>⬅ Retour</Text>
         </TouchableOpacity>
@@ -121,11 +125,13 @@ export default function ToiletDetailsScreen() {
     );
   }
 
-  const isOpen = toilet.isOpen ?? true;
-  const hoursLabel = toilet.openingHours ?? "Horaires inconnus";
-  const accessibilityLabel = toilet.accessible ? "Accessible UFR" : "Non accessible";
+  const isOpen = toiletViewModel.toilet.isOpen ?? true;
+  const hoursLabel = toiletViewModel.toilet.openingHours ?? "Horaires inconnus";
+  const accessibilityLabel = toiletViewModel.toilet.accessible
+    ? "Accessible UFR"
+    : "Non accessible";
 
-  const handleUpdateStatus = async (status: "accepted" | "rejected") => {
+    const handleUpdateStatus = async (status: "accepted" | "rejected") => {
     if (!userProfile || userProfile.type !== "admin") return;
     
     try {
@@ -164,12 +170,13 @@ export default function ToiletDetailsScreen() {
       Alert.alert("Erreur", "Une erreur s'est produite lors de la suppression");
     }
 
-  };
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+        <TouchableOpacity
+          onPress={toiletViewModel.goBack}
+          style={styles.headerBack}
+        >
           <Text style={[styles.headerBackIcon, { color: theme.text }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Infos des toilettes</Text>
@@ -177,20 +184,23 @@ export default function ToiletDetailsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <Image source={{ uri: toilet.image ?? DEFAULT_TOILET_IMAGE }} style={styles.image} />
+        <Image
+          source={{ uri: toiletViewModel.toilet.image ?? DEFAULT_TOILET_IMAGE }}
+          style={styles.image}
+        />
 
         <View style={styles.mainInfo}>
           <Text style={[styles.toiletName, { color: theme.text }]}>
-            {toilet.name}
+            {toiletViewModel.toilet.name}
           </Text>
           <Text style={[styles.toiletAddress, { color: theme.textMuted }]}>
-            {address}
+            {toiletViewModel.address}
           </Text>
 
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               style={[styles.goButton, { backgroundColor: theme.primary }]}
-              onPress={() => openInExternalMaps(toilet)}
+              onPress={toiletViewModel.openInMaps}
             >
               <Text style={[styles.goButtonText, { color: theme.card }]}>
                 Y aller 🧭
@@ -198,7 +208,7 @@ export default function ToiletDetailsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.goButton, { backgroundColor: theme.error }]}
-              onPress={() => router.push({ pathname: '/contribute/report-issue', params: { toiletId: toiletIdNum } })}
+              onPress={toiletViewModel.goToReport}
             >
               <Text style={[styles.goButtonText, { color: theme.card }]}>
                 Signaler ⚠️
@@ -300,20 +310,21 @@ export default function ToiletDetailsScreen() {
 
 
         <View style={styles.section}>
-            <View style={styles.ratingsHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                Avis & commentaires
+          <View style={styles.ratingsHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Avis & commentaires
+            </Text>
+            <TouchableOpacity
+              onPress={toiletViewModel.goToRate}
+              style={styles.rateButton}
+            >
+              <Text style={[styles.rateButtonText, { color: theme.primary }]}>
+                Noter ces toilettes
               </Text>
-              <TouchableOpacity
-                onPress={() => router.push(`/toilet/${toilet.id}/rate`)}
-                style={styles.rateButton}
-              >
-                <Text style={[styles.rateButtonText, { color: theme.primary }]}>
-                  Noter ces toilettes
-                </Text>
-              </TouchableOpacity>
-            </View>
-          {ratingCount === 0 ? (
+            </TouchableOpacity>
+          </View>
+
+          {toiletViewModel.ratingCount === 0 ? (
             <View style={{ marginTop: 12 }}>
               <Text style={{ color: theme.textMuted, fontSize: 14 }}>
                 Pas encore d’avis pour ces toilettes.
@@ -325,11 +336,36 @@ export default function ToiletDetailsScreen() {
           ) : (
             <>
               <View style={styles.ratingSummaryRow}>
-                <Text style={{ color: theme.text, fontWeight: "600", marginBottom: 8 }}>
-                  Note moyenne : {averageRating?.toFixed(1) ?? "-"} / 5 ({ratingCount} avis)
-                </Text>
+                <View style={styles.ratingScoreColumn}>
+                  <Text style={[styles.ratingAverage, { color: theme.text }]}>
+                    {toiletViewModel.averageRating!.toFixed(1)}
+                  </Text>
+                  <View style={styles.starsRow}>
+                    {Array.from({ length: 5 }).map((_, index) => {
+                      const starValue = index + 1;
+                      const filled =
+                        toiletViewModel.averageRating !== null &&
+                        starValue <= Math.round(toiletViewModel.averageRating);
+                      return (
+                        <Text
+                          key={starValue}
+                          style={[
+                            styles.star,
+                            { color: filled ? "#FBBF24" : theme.textMuted },
+                          ]}
+                        >
+                          {filled ? "★" : "☆"}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                  <Text style={{ color: theme.textMuted, fontSize: 13 }}>
+                    {toiletViewModel.ratingCount} avis
+                  </Text>
+                </View>
               </View>
-              {toiletComments.map((review) => (
+
+              {toiletViewModel.comments.map((review) => (
                 <View key={review.id} style={styles.reviewCard}>
                   <View style={styles.reviewHeaderRow}>
                     <View style={styles.reviewAvatar}>
