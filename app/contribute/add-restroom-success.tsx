@@ -3,13 +3,14 @@ import { Colors } from "@/constants/Colors";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AddRestroomSuccessScreen() {
   const router = useRouter();

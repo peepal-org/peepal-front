@@ -25,7 +25,7 @@ function computeIsOpen(
 ): boolean | undefined {
   const s = (openingHoursRaw ?? "").trim().toLowerCase();
   if (!s) return undefined;
-
+  // 24/7 variants
   if (
     s.includes("24/7") ||
     s.includes("24h") ||
@@ -34,9 +34,9 @@ function computeIsOpen(
   ) {
     return true;
   }
-
+  // Unknown / commercial
   if (s.includes("commercial") || s.includes("inconnu")) return undefined;
-
+  // Range like "08:00-20:30" or "08:00 - 20:30"
   const range = s.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
   if (!range) return undefined;
 
@@ -45,11 +45,11 @@ function computeIsOpen(
   if (start == null || end == null) return undefined;
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
+  // Normal same-day range
   if (start <= end) {
     return nowMinutes >= start && nowMinutes <= end;
   }
-
+  // Overnight range (e.g. 21:00-02:00)
   return nowMinutes >= start || nowMinutes <= end;
 }
 
