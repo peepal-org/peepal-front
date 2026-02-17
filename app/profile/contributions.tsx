@@ -342,6 +342,7 @@ export default function ContributionsScreen() {
   // Titre dynamique selon le scope
   const pageTitle = scope === "all" ? "Contributions (tous les utilisateurs)" : "Mes contributions";
 
+  
   // Composants pour les listes vides
   const EmptyToiletsComponent = () => (
     <View style={styles.emptyContainer}>
