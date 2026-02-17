@@ -48,5 +48,6 @@ export function buildCreateToiletPayload(params: {
     clean: true,
     opening_hours: mapOpeningToOpeningHours(form.opening),
     createdBy: userId,
+    status: "waiting"
   };
 }

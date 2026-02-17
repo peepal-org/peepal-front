@@ -94,9 +94,9 @@ describe("mapApiToilet", () => {
     jest.useRealTimers();
   });
 
-  it("should set statut to 'accepted' by default", () => {
+  it("should set statut to 'waiting' by default", () => {
     const result = mapApiToilet(baseApiToilet);
-    expect(result.statut).toBe("accepted");
+    expect(result.statut).toBe("waiting");
   });
 });
 

@@ -2,6 +2,7 @@ import { getUserProfile } from "@/auth/authService";
 import { useToast } from "@/components/toast/useToast";
 import { apiFetch } from "@/functions/api";
 import { CreateToiletPayload } from "@/types/api/ApiToilet";
+import { Statut } from "@/types/Statut";
 import { getErrorMessage } from "@/utils/errorHandler";
 import { getAddressFromCoords, getCoordsFromAddress } from "@/utils/geocoding";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -105,6 +106,7 @@ export function useAddRestroomViewModel() {
         clean: true,
         opening_hours,
         createdBy: profile.id,
+        status: "waiting" as Statut
       };
 
       // console.log("=== PAYLOAD ENVOYÉ ===", JSON.stringify(payload, null, 2));

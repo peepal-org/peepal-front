@@ -10,4 +10,5 @@ export type User = {
   points: number;
   level: number;
   bio?: string;
+  type?: string;
 };

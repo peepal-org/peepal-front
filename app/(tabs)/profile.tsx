@@ -4,6 +4,7 @@ import { Colors } from "@/constants/Colors";
 import { DEFAULT_USER_AVATAR } from "@/constants/Images";
 import { Shadows } from "@/constants/Shadows";
 import { fetchComments } from "@/functions/api/comments";
+import { fetchReport, fetchReports } from "@/functions/api/reports";
 import { fetchToilets } from "@/functions/api/toilet";
 import { User } from "@/types/ui/User";
 import { withDefaultImage } from "@/utils/images";
@@ -61,49 +62,119 @@ export default function ProfileScreen() {
       loadProfile();
       queryClient.invalidateQueries({ queryKey: ["userComments"] });
       queryClient.invalidateQueries({ queryKey: ["userToilets"] });
+    
+      queryClient.invalidateQueries({ queryKey: ["myComments"] });
+      queryClient.invalidateQueries({ queryKey: ["myToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["allComments"] });
+      queryClient.invalidateQueries({ queryKey: ["allToilets"] });
     }, [loadProfile, queryClient]),
   );
 
-  const { data: commentsData = [] } = useQuery({
-    queryKey: ["userComments"],
+  const { data: myCommentsData = [] } = useQuery({
+    queryKey: ["myComments", userProfile?.id],
     queryFn: fetchComments,
-    select: (apiComments) =>
-      apiComments.filter((comment) => comment.user.id === userProfile?.id),
+    select: (apiComments) => {
+      return apiComments.filter(
+        (comment) => comment.user.id === userProfile?.id
+      );
+    },
     enabled: !!userProfile,
   });
 
-  const { data: toiletsData = [] } = useQuery({
-    queryKey: ["userToilets"],
+  const { data: myReportData = [] } = useQuery({
+    queryKey: ["myReports", userProfile?.id],
+    queryFn: fetchReports,
+    select: (apiReports) => {
+      return apiReports.filter(
+        (report) => report.user.id === userProfile?.id
+      );
+    },
+    enabled: !!userProfile,
+  });
+
+  const { data: myToiletsData = [] } = useQuery({
+    queryKey: ["myToilets", userProfile?.id],
     queryFn: fetchToilets,
-    select: (apiToilets) =>
-      apiToilets.filter((toilet) => toilet.createdBy?.id === userProfile?.id),
+    select: (apiToilets) => {
+      return apiToilets.filter(
+        (toilet) => toilet.createdBy?.id === userProfile?.id
+      );
+    },
     enabled: !!userProfile,
   });
 
-  const commentsCount = commentsData.length;
-  const toiletsCount = toiletsData.length;
+  const { data: allCommentsData = [] } = useQuery({
+    queryKey: ["allComments"],
+    queryFn: fetchComments,
+    enabled: !!userProfile && userProfile?.type === "admin",
+  });
 
-  const contributionItems = [
+  const { data: allToiletsData = [] } = useQuery({
+    queryKey: ["allToilets"],
+    queryFn: fetchToilets,
+    enabled: !!userProfile && userProfile?.type === "admin",
+  });
+
+  const { data: allReportData = [] } = useQuery({
+    queryKey: ["allReport"],
+    queryFn: fetchReports,
+    enabled: !!userProfile && userProfile?.type === "admin",
+  });
+
+
+  const myCommentsCount = myCommentsData.length;
+  const myToiletsCount = myToiletsData.filter(toilet => toilet.status).length;
+  const myReportCount = myReportData.length;
+  
+  const allCommentsCount = allCommentsData.length;
+  const allToiletsCount = allToiletsData.filter(toilet => toilet.status).length;
+  const allReportCount = allReportData.length;
+
+  const myContributionItems = [
     {
-      id: "toilettes",
+      id: "mes-toilettes",
       icon: "location-outline" as keyof typeof Ionicons.glyphMap,
       title: "Toilettes ajoutés",
-      subtitle: toiletsCount.toString(),
-      route: "/profile/contributions?tab=ajoute",
+      subtitle: myToiletsCount.toString(),
+      route: "/profile/contributions?tab=ajoute&scope=personal",
     },
     {
-      id: "commentaires",
+      id: "mes-commentaires",
       icon: "star-outline" as keyof typeof Ionicons.glyphMap,
       title: "Commentaires",
-      subtitle: commentsCount.toString(),
-      route: "/profile/contributions?tab=commentaires",
+      subtitle: myCommentsCount.toString(),
+      route: "/profile/contributions?tab=commentaires&scope=personal",
     },
     {
       id: "signalements",
       icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
       title: "Signalements",
-      subtitle: "20",
-      route: "/profile/contributions?tab=signalements",
+      subtitle: myReportCount.toString(),
+      route: "/profile/contributions?tab=signalements&scope=personal",
+    },
+  ];
+
+  const allContributionItems = [
+    {
+      id: "all-toilettes",
+      icon: "location-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Toilettes ajoutés",
+      subtitle: allToiletsCount.toString(),
+      route: "/profile/contributions?tab=ajoute&scope=all",
+    },
+    {
+      id: "all-commentaires",
+      icon: "star-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Commentaires",
+      subtitle: allCommentsCount.toString(),
+      route: "/profile/contributions?tab=commentaires&scope=all",
+    },
+    {
+      id: "all-signalements",
+      icon: "flag-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Signalements",
+      subtitle: allReportCount.toString(),
+      route: "/profile/contributions?tab=signalements&scope=all",
     },
   ];
 
@@ -200,9 +271,9 @@ export default function ProfileScreen() {
       >
         <View style={styles.stats}>
           {[
-            { number: commentsCount, label: "Commentaires" },
-            { number: 20, label: "Signalements" },
-            { number: 3, label: "Badges" },
+            { number: myCommentsCount, label: "Commentaires" },
+            { number: myReportCount.toString(), label: "Signalements" },
+            { number: 7, label: "Badges" },
           ].map((stat, index) => (
             <View key={index} style={styles.statBox}>
               <Text style={[styles.statNumber, { color: theme.primary }]}>
@@ -217,10 +288,10 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Contributions
+            Mes contributions
           </Text>
           <FlatList
-            data={contributionItems}
+            data={myContributionItems}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[styles.flatList, { backgroundColor: theme.card }]}
@@ -248,6 +319,38 @@ export default function ProfileScreen() {
             scrollEnabled={false}
           />
         </View>
+
+        {/* Contributions globales - uniquement pour les admins */}
+        {userProfile.type === "admin" && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Contributions (tous les utilisateurs)
+            </Text>
+            <FlatList
+              data={allContributionItems}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.flatList, { backgroundColor: theme.card }]}
+                  onPress={() => router.push(item.route as any)}
+                >
+                  <View style={[styles.iconContainer]}>
+                    <Ionicons name={item.icon} size={20} color={theme.primary} />
+                  </View>
+                  <View style={styles.flatListContent}>
+                    <Text style={[styles.flatListTitle, { color: theme.text }]}>
+                      {item.title}
+                    </Text>
+                    <Text style={[styles.flatListSubtitle, { color: theme.textMuted }]}>
+                      {item.subtitle}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+            />
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -405,6 +508,15 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     flex: 1,
+  },
+  admin: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 3,
+  },
+  adminText: {
+    color:"#4CAF50"
   },
   flatListTitle: {
     fontSize: scale(16),

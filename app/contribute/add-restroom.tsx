@@ -1,7 +1,11 @@
 import { Colors } from "@/constants/Colors";
 import { useAddRestroomViewModel } from "@/features/contribute/useAddRestroomViewModel";
 import { Picker } from "@react-native-picker/picker";
-import React from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import * as Location from "expo-location";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Statut } from "../../types/Statut";
 import {
   ScrollView,
   StyleSheet,

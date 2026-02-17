@@ -22,11 +22,26 @@ export function useLoginViewModel() {
 
     setIsLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, false);  
       await refreshAuth();
       router.replace("/(tabs)/map");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Erreur de connexion."));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async () => {
+    if (!isFormValid) return;
+
+    setIsLoading(true);
+    try {
+      await login(email, password, true);
+      await refreshAuth();
+      router.replace("/(tabs)/map");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Erreur de connexion admin."));
     } finally {
       setIsLoading(false);
     }
@@ -44,6 +59,7 @@ export function useLoginViewModel() {
     isLoading,
     isFormValid,
     handleLogin,
+    handleAdminLogin,
     goToRegister,
   };
 }

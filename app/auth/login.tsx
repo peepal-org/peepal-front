@@ -1,6 +1,10 @@
+import { login } from "@/auth/authService";
 import { Colors } from "@/constants/Colors";
 import { useLoginViewModel } from "@/features/auth/useLoginViewModel";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/auth/useAuth";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -19,6 +23,9 @@ export default function Login() {
   const loginViewModel = useLoginViewModel();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const router = useRouter();
 
   return (
     <SafeAreaView
@@ -123,6 +130,27 @@ export default function Login() {
               <Text style={styles.loginButtonText}>Se connecter</Text>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.loginButton,
+              {
+                backgroundColor: loginViewModel.isFormValid
+                  ? theme.primary
+                  : Colors.palette.disabled,
+              },
+            ]}
+            onPress={loginViewModel.handleAdminLogin}
+            disabled={!loginViewModel.isFormValid || loginViewModel.isLoading}
+            activeOpacity={0.8}
+          >
+            {loginViewModel.isLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.loginButtonText}>Se connecter en tant qu'Admin</Text>
+            )}
+          </TouchableOpacity>
+
         </View>
 
         {/* Footer */}

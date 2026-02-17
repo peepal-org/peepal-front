@@ -1,5 +1,7 @@
 import { ApiUser } from "./ApiUser";
 
+import { Statut } from "../../types/Statut";
+
 export type ApiToilet = {
   id: number;
   name: string;
@@ -13,6 +15,7 @@ export type ApiToilet = {
   clean: boolean;
   opening_hours: string;
   createdAt: string;
+  status?: Statut;
   createdBy?: ApiUser | { id: number } | null;
 };
 

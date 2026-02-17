@@ -1,20 +1,37 @@
-import { fetchComments } from "@/functions/api/comments";
-import { fetchToiletById } from "@/functions/api/toilet";
+import { getUserProfile } from "@/auth/authService";
+import { deleteComment, fetchComments } from "@/functions/api/comments";
+import { deleteToilet, fetchToiletById, updateToilet } from "@/functions/api/toilet";
 import { mapApiComment } from "@/functions/mappers/comments";
 import { mapApiToilet } from "@/functions/mappers/toilet";
+import { ApiUser } from "@/types/api/ApiUser";
 import { Toilet } from "@/types/ui/Toilet";
 import { getAddressFromCoords } from "@/utils/geocoding";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Linking, Platform } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 
 export function useToiletDetailViewModel() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [address, setAddress] = useState("Chargement de l'adresse…");
+  const [userProfile, setUserProfile] = useState<ApiUser | null>(null);
 
   const toiletIdNum = Number(id);
+
+  // 🎯 Charger le profil utilisateur
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await getUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error("Erreur chargement profil:", error);
+      }
+    };
+    loadProfile();
+  }, []);
 
   // Fetch toilet
   const { data: apiToilet, isLoading } = useQuery({
@@ -51,6 +68,9 @@ export function useToiletDetailViewModel() {
   const accessibilityLabel = toilet?.accessible
     ? "Accessible UFR"
     : "Non accessible";
+
+  // 🎯 Admin check
+  const isAdmin = userProfile?.type === "admin";
 
   // Reverse geocoding
   useEffect(() => {
@@ -101,6 +121,131 @@ export function useToiletDetailViewModel() {
     });
   }, [router, toiletIdNum]);
 
+ const handleUpdateStatus = useCallback(
+  async (status: "accepted" | "rejected") => {
+    if (!isAdmin || !toilet) return;
+
+    try {
+
+      queryClient.setQueryData(["toilets", toiletIdNum], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          status: status,
+          statut: status,
+        };
+      });
+
+      await updateToilet(Number(toilet.id), { status });
+      
+      await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
+
+      Alert.alert(
+        "Succès",
+        status === "accepted"
+          ? "Toilettes acceptées avec succès"
+          : "Toilettes rejetées avec succès"
+      );
+
+    } catch (error) {
+      await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
+      Alert.alert("Erreur", "Une erreur s'est produite");
+    }
+  },
+  [isAdmin, toilet, queryClient, toiletIdNum]
+);
+
+  const handleAcceptToilet = useCallback(() => {
+    Alert.alert(
+      "Accepter les toilettes",
+      "Voulez-vous vraiment accepter ces toilettes ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Accepter",
+          onPress: () => handleUpdateStatus("accepted"),
+        },
+      ]
+    );
+  }, [handleUpdateStatus]);
+
+  const handleRejectToilet = useCallback(() => {
+    Alert.alert(
+      "Rejeter les toilettes",
+      "Voulez-vous vraiment rejeter ces toilettes ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Rejeter",
+          style: "destructive",
+          onPress: () => handleUpdateStatus("rejected"),
+        },
+      ]
+    );
+  }, [handleUpdateStatus]);
+
+  const handleDeleteToilet = useCallback(() => {
+    if (!isAdmin || !toilet) return;
+
+    Alert.alert(
+      "Supprimer les toilettes",
+      "Voulez-vous vraiment supprimer ces toilettes ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteToilet(Number(toilet.id));
+              queryClient.invalidateQueries({ queryKey: ["toilets"] });
+              Alert.alert("Succès", "Toilettes supprimées avec succès");
+              router.back();
+            } catch (error) {
+              Alert.alert(
+                "Erreur",
+                "Une erreur s'est produite lors de la suppression"
+              );
+            }
+          },
+        },
+      ]
+    );
+  }, [isAdmin, toilet, queryClient, router]);
+
+  const handleDeleteComment = useCallback(
+    (commentId: number) => {
+      if (!isAdmin) return;
+
+      Alert.alert(
+        "Supprimer le commentaire",
+        "Voulez-vous vraiment supprimer ce commentaire ?",
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "Supprimer",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteComment(commentId);
+                queryClient.invalidateQueries({
+                  queryKey: ["comments", toiletIdNum],
+                });
+                Alert.alert("Succès", "Commentaire supprimé avec succès");
+              } catch (error) {
+                Alert.alert(
+                  "Erreur",
+                  "Une erreur s'est produite lors de la suppression"
+                );
+              }
+            },
+          },
+        ]
+      );
+    },
+    [isAdmin, queryClient, toiletIdNum]
+  );
+
   return {
     toilet,
     isLoading,
@@ -111,9 +256,19 @@ export function useToiletDetailViewModel() {
     isOpen,
     hoursLabel,
     accessibilityLabel,
+    isAdmin, 
     goBack,
     openInMaps,
     goToRate,
     goToReport,
+    handleAcceptToilet, 
+    handleRejectToilet, 
+    handleDeleteToilet, 
+    handleDeleteComment, 
   };
+}
+
+async function fetchToiletDetails(toiletId: string) {
+  const response = await fetch(`/api/toilets/${toiletId}`);
+  return response.json();
 }
