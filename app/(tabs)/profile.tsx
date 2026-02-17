@@ -272,8 +272,8 @@ export default function ProfileScreen() {
         <View style={styles.stats}>
           {[
             { number: myCommentsCount, label: "Commentaires" },
-            { number: 0, label: "Signalements" },
-            { number: 3, label: "Badges" },
+            { number: myReportCount.toString(), label: "Signalements" },
+            { number: 7, label: "Badges" },
           ].map((stat, index) => (
             <View key={index} style={styles.statBox}>
               <Text style={[styles.statNumber, { color: theme.primary }]}>

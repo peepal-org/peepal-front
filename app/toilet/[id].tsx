@@ -96,14 +96,16 @@ export default function ToiletDetailsScreen() {
                 Y aller 🧭
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.goButton, { backgroundColor: theme.error }]}
-              onPress={toiletViewModel.goToReport}
-            >
-              <Text style={[styles.goButtonText, { color: theme.card }]}>
-                Signaler ⚠️
-              </Text>
-            </TouchableOpacity>
+            {toiletViewModel.toilet.statut == "accepted" && (
+              <TouchableOpacity
+                style={[styles.goButton, { backgroundColor: theme.error }]}
+                onPress={toiletViewModel.goToReport}
+              >
+                <Text style={[styles.goButtonText, { color: theme.card }]}>
+                  Signaler ⚠️
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -162,9 +164,11 @@ export default function ToiletDetailsScreen() {
               onPress={toiletViewModel.goToRate}
               style={styles.rateButton}
             >
-              <Text style={[styles.rateButtonText, { color: theme.primary }]}>
-                Noter ces toilettes
-              </Text>
+              {toiletViewModel.toilet.statut == "accepted" && (
+                <Text style={[styles.rateButtonText, { color: theme.primary }]}>
+                  Noter ces toilettes
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 

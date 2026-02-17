@@ -294,19 +294,22 @@ export default function ContributionsScreen() {
       style={styles.item}
       onPress={() => router.push(`/toilet/${report.toiletId}`)}
     >
-      <Image
-        source={{ uri: report.userPhotoUrl || DEFAULT_USER_AVATAR }}
-        style={styles.image}
-      />
-      <View style={styles.itemContent}>
-        <View style={styles.commentHeader}>
-          <Text style={styles.title}>{report.userName}</Text>
-          <Text style={styles.dateLabel}>{report.dateLabel}</Text>
-        </View>
-
-        <Text style={styles.reportToiletName} numberOfLines={1}>
+      <View style={styles.reportImageContainer}>
+        <Image
+          source={{ uri: report.toiletImage || DEFAULT_TOILET_IMAGE }}
+          style={styles.image}
+        />
+        <Text style={styles.reportToiletNameBelow} numberOfLines={1}>
           {report.toiletName}
         </Text>
+      </View>
+      <View style={styles.itemContent}>
+        <View style={styles.reportHeader}>
+          <Text style={styles.reportUserName}>{report.userName}</Text>
+          <Text style={styles.dateLabel}>
+            {report.dateLabel.replace(/(\d+)([hms])/g, '$1 $2')}
+          </Text>
+        </View>
 
         <View style={styles.reportTypeContainer}>
           <Ionicons 
@@ -320,7 +323,7 @@ export default function ContributionsScreen() {
         </View>
 
         {report.description && (
-          <Text style={styles.reportDescription} numberOfLines={2}>
+          <Text style={styles.reportDescription} numberOfLines={4}>
             {report.description}
           </Text>
         )}
@@ -557,6 +560,29 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 6,
   },
+  reportImageContainer: {
+    alignItems: "center",
+    marginRight: 15,
+    width: 70,
+  },
+  reportToiletNameBelow: {
+    fontSize: 12,
+    color: "#555",
+    marginTop: 6,
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  reportHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  reportUserName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
   reportToiletName: {
     fontSize: 14,
     color: "#555",
@@ -567,7 +593,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   reportTypeText: {
     fontSize: 13,
@@ -577,7 +603,7 @@ const styles = StyleSheet.create({
   reportDescription: {
     fontSize: 13,
     color: "#888",
-    fontStyle: "italic",
+    lineHeight: 18,
   },
   bufferBase: {
     paddingHorizontal: 12,
