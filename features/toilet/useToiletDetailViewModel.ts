@@ -10,11 +10,15 @@ import { useCallback, useEffect, useState } from "react";
 import { Linking, Platform } from "react-native";
 
 export function useToiletDetailViewModel() {
-  const { id } = useLocalSearchParams();
+  const { id  } = useLocalSearchParams();
+  const { commentId } = useLocalSearchParams();
+
   const router = useRouter();
   const [address, setAddress] = useState("Chargement de l'adresse…");
 
   const toiletIdNum = Number(id);
+  const commentIdNum  = Number(commentId);
+
 
   // Fetch toilet
   const { data: apiToilet, isLoading } = useQuery({
@@ -101,6 +105,15 @@ export function useToiletDetailViewModel() {
     });
   }, [router, toiletIdNum]);
 
+const goToReportComment = useCallback(
+  (commentId: number) => {
+    router.push({
+      pathname: "/contribute/report-comment",
+      params: { commentId },
+    });
+  },
+  [router]
+);
   return {
     toilet,
     isLoading,
@@ -115,5 +128,6 @@ export function useToiletDetailViewModel() {
     openInMaps,
     goToRate,
     goToReport,
+    goToReportComment
   };
 }

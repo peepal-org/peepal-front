@@ -246,6 +246,14 @@ export default function ToiletDetailsScreen() {
                   <Text style={[styles.reviewText, { color: theme.text }]}>
                     {review.content}
                   </Text>
+                     <TouchableOpacity
+                       onPress={() => toiletViewModel.goToReportComment(review.id)}
+                        style={styles.reportButton}
+                      >
+                        <Text style={styles.reportButtonText}>
+                          Signaler
+                        </Text>
+                      </TouchableOpacity>
                 </View>
               ))}
             </>
@@ -377,4 +385,17 @@ const styles = StyleSheet.create({
   },
   reviewAvatarImage: { width: 36, height: 36, borderRadius: 18 },
   reviewAvatarEmoji: { fontSize: 20 },
+reportButton: {
+  marginTop: 6,
+  alignSelf: "flex-end",
+  paddingHorizontal: 10,
+  paddingVertical: 5,
+  borderRadius: 6,
+  backgroundColor: "#FEE2E2", // fond rouge clair
+},
+reportButtonText: {
+  color: "#DC2626", // texte rouge vif
+  fontSize: 12,
+  fontWeight: "500",
+}
 });
