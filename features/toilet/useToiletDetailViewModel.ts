@@ -12,13 +12,17 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Linking, Platform } from "react-native";
 
 export function useToiletDetailViewModel() {
-  const { id } = useLocalSearchParams();
+  const { id  } = useLocalSearchParams();
+  const { commentId } = useLocalSearchParams();
+
   const router = useRouter();
   const queryClient = useQueryClient();
   const [address, setAddress] = useState("Chargement de l'adresse…");
   const [userProfile, setUserProfile] = useState<ApiUser | null>(null);
 
   const toiletIdNum = Number(id);
+
+  const commentIdNum  = Number(commentId);
 
   // 🎯 Charger le profil utilisateur
   useEffect(() => {
@@ -32,6 +36,9 @@ export function useToiletDetailViewModel() {
     };
     loadProfile();
   }, []);
+
+  
+
 
   // Fetch toilet
   const { data: apiToilet, isLoading } = useQuery({
@@ -120,6 +127,18 @@ export function useToiletDetailViewModel() {
       params: { toiletId: toiletIdNum },
     });
   }, [router, toiletIdNum]);
+
+  const goToReportComment = useCallback(
+    (commentId: number) => {
+      router.push({
+        pathname: "/contribute/report-comment",
+        params: { commentId },
+      });
+    },
+    [router]
+  );
+
+
 
  const handleUpdateStatus = useCallback(
   async (status: "accepted" | "rejected") => {
@@ -261,6 +280,7 @@ export function useToiletDetailViewModel() {
     openInMaps,
     goToRate,
     goToReport,
+    goToReportComment
     handleAcceptToilet, 
     handleRejectToilet, 
     handleDeleteToilet, 
