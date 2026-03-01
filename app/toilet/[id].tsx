@@ -244,9 +244,27 @@ export default function ToiletDetailsScreen() {
                     </View>
                   </View>
 
-                  <Text style={[styles.reviewText, { color: theme.text }]}>
-                    {review.content}
-                  </Text>
+                  <View style={styles.commentTextContainer}>
+                    <Text style={[styles.reviewText, { color: theme.text, flex: 1 }]}>
+                      {review.content}
+                    </Text>
+                    {toiletViewModel.isAdmin && (
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => toiletViewModel.handleDeleteComment(Number(review.id))}
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                       onPress={() => toiletViewModel.goToReportComment(Number(review.id))}
+                        style={styles.reportButton}
+                    >
+                      <Text style={styles.reportButtonText}>
+                        Signaler
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </>
@@ -343,20 +361,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   reviewAvatarImage: { width: 36, height: 36, borderRadius: 18 },
-  reviewAvatarEmoji: { fontSize: 20 },
-  reportButton: {
-    marginTop: 6,
-    alignSelf: "flex-end",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: "#FEE2E2", // fond rouge clair
-  },
-  reportButtonText: {
-    color: "#DC2626", // texte rouge vif
-    fontSize: 12,
-    fontWeight: "500",
-  },
   commentTextContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -365,4 +369,17 @@ const styles = StyleSheet.create({
   deleteButton: {
     paddingTop: 2,
   },
+  reportButton: {
+  marginTop: 6,
+  alignSelf: "flex-end",
+  paddingHorizontal: 10,
+  paddingVertical: 5,
+  borderRadius: 6,
+  backgroundColor: "#FEE2E2", 
+  },
+  reportButtonText: {
+    color: "#DC2626", 
+    fontSize: 12,
+    fontWeight: "500",
+  }
 });

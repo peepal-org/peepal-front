@@ -138,8 +138,6 @@ export function useToiletDetailViewModel() {
     [router]
   );
 
-
-
  const handleUpdateStatus = useCallback(
   async (status: "accepted" | "rejected") => {
     if (!isAdmin || !toilet) return;
@@ -280,7 +278,7 @@ export function useToiletDetailViewModel() {
     openInMaps,
     goToRate,
     goToReport,
-    goToReportComment
+    goToReportComment,
     handleAcceptToilet, 
     handleRejectToilet, 
     handleDeleteToilet, 
