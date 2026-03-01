@@ -276,8 +276,14 @@ export default function ToiletDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { 
+    flex: 1 
+  },
+  center: { 
+    flex: 1, 
+    justifyContent: "center",
+     alignItems: "center" 
+  },
   header: {
     height: 52,
     flexDirection: "row",
@@ -285,17 +291,57 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerBack: { width: 32, alignItems: "flex-start" },
-  headerBackIcon: { fontSize: 20, fontWeight: "500" },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "600" },
-  headerSpacer: { width: 32 },
-  image: { width: "100%", height: 220 },
-  mainInfo: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
-  toiletName: { fontSize: 22, fontWeight: "700", marginBottom: 4 },
-  toiletAddress: { fontSize: 14, marginBottom: 8 },
-  buttonsContainer: { flexDirection: "row", gap: 12, marginTop: 12 },
-  goButton: { flex: 1, paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999, alignItems: "center" },
-  goButtonText: { fontSize: 14, fontWeight: "600" },
+  headerBack: { 
+    width: 32, 
+    alignItems: "flex-start" 
+  },
+  headerBackIcon: { 
+    fontSize: 20, 
+    fontWeight: "500" 
+  },
+  headerTitle: { 
+    flex: 1, 
+    textAlign: "center",
+    fontSize: 16, 
+    fontWeight: "600" 
+  },
+  headerSpacer: { 
+    width: 32 
+  },
+  image: { 
+    width: "100%", 
+    height: 220 
+  },
+  mainInfo: { 
+    paddingHorizontal: 16, 
+    paddingTop: 16, 
+    paddingBottom: 8 
+  },
+  toiletName: { 
+    fontSize: 22, 
+    fontWeight: "700", 
+    marginBottom: 4 
+  },
+  toiletAddress: { 
+    fontSize: 14, 
+    marginBottom: 8 
+  },
+  buttonsContainer: { 
+    flexDirection: "row", 
+    gap: 12, 
+    marginTop: 12 
+  },
+  goButton: { 
+    flex: 1, 
+    paddingVertical: 6, 
+    paddingHorizontal: 14, 
+    borderRadius: 999, 
+    alignItems: "center" 
+  },
+  goButtonText: { 
+    fontSize: 14, 
+    fontWeight: "600" 
+  },
   infoRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
@@ -305,9 +351,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     gap: 16,
   },
-  infoColumn: { flex: 1 },
-  infoLabel: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
-  infoValue: { fontSize: 14, fontWeight: "500" },
+  infoColumn: { 
+    flex: 1 
+  },
+  infoLabel: { 
+    fontSize: 12, 
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4 
+  },
+  infoValue: { 
+    fontSize: 14, 
+    fontWeight: "500" 
+  },
   adminButtonsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -328,29 +384,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
-  section: { marginHorizontal: 16, marginTop: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  errorText: { fontSize: 18, marginBottom: 12 },
-  secondaryButton: { paddingVertical: 12, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1 },
-  secondaryButtonText: { fontSize: 14, fontWeight: "500" },
-  ratingsHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  rateButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(0,0,0,0.03)" },
-  rateButtonText: { fontSize: 13, fontWeight: "500" },
-  ratingSummaryRow: { flexDirection: "row", alignItems: "center", marginTop: 12, marginBottom: 8 },
-  ratingScoreColumn: { flexDirection: "column", alignItems: "flex-start" },
-  ratingAverage: { fontSize: 28, fontWeight: "700" },
-  starsRow: { flexDirection: "row", marginVertical: 4, gap: 2 },
-  star: { fontSize: 18 },
+  section: { 
+    marginHorizontal: 16, 
+    marginTop: 24 
+  },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: "700", 
+    marginBottom: 8 
+  },
+  errorText: { 
+    fontSize: 18,
+    marginBottom: 12 
+  },
+  secondaryButton: { 
+    paddingVertical: 12, 
+    paddingHorizontal: 18, 
+    borderRadius: 999, 
+    borderWidth: 1 
+  },
+  secondaryButtonText: { 
+    fontSize: 14, 
+    fontWeight: "500" 
+  },
+  ratingsHeaderRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "space-between" 
+  },
+  rateButton: { 
+    paddingHorizontal: 10, 
+    paddingVertical: 6, 
+    borderRadius: 999, 
+    backgroundColor: "rgba(0,0,0,0.03)" 
+  },
+  rateButtonText: { 
+    fontSize: 13, 
+    fontWeight: "500" 
+  },
+  ratingSummaryRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginTop: 12, 
+    marginBottom: 8 
+  },
+  ratingScoreColumn: { 
+    flexDirection: "column", 
+    alignItems: "flex-start" 
+  },
+  ratingAverage: { 
+    fontSize: 28, 
+    fontWeight: "700" 
+  },
+  starsRow: { 
+    flexDirection: "row", 
+    marginVertical: 4, 
+    gap: 2 
+  },
+  star: { 
+    fontSize: 18 
+  },
   reviewCard: {
     marginTop: 12,
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(0,0,0,0.08)",
   },
-  reviewHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
-  reviewAuthor: { fontSize: 14, fontWeight: "600" },
-  starSmall: { fontSize: 14 },
-  reviewText: { fontSize: 14, lineHeight: 20 },
+  reviewHeaderRow: { 
+    flexDirection: "row", 
+    alignItems: "center",
+    marginBottom: 6 
+  },
+  reviewAuthor: { 
+    fontSize: 14, 
+    fontWeight: "600" 
+  },
+  starSmall: { 
+    fontSize: 14 
+  },
+  reviewText: { 
+    fontSize: 14, 
+    lineHeight: 20 
+  },
   reviewAvatar: {
     width: 36,
     height: 36,
