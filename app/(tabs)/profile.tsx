@@ -398,7 +398,9 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { 
+    flex: 1 
+  },
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -462,7 +464,10 @@ const styles = StyleSheet.create({
     fontSize: scale(14),
     fontWeight: "500",
   },
-  subtitle: { fontSize: scale(14), marginBottom: verticalScale(5) },
+  subtitle: { 
+    fontSize: scale(14),
+    marginBottom: verticalScale(5) 
+  },
   bio: {
     fontSize: scale(14),
     textAlign: "center",
@@ -484,7 +489,10 @@ const styles = StyleSheet.create({
     fontSize: scale(14),
     textAlign: "center",
   },
-  section: { marginTop: verticalScale(30), paddingHorizontal: scale(20) },
+  section: { 
+    marginTop: verticalScale(30),
+    paddingHorizontal: scale(20) 
+  },
   sectionTitle: {
     fontSize: scale(18),
     fontWeight: "bold",
@@ -534,5 +542,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...Shadows.dp2,
   },
-  buttonText: { color: "white", fontSize: scale(16), fontWeight: "600" },
+  buttonText: { 
+    color: "white", 
+    fontSize: scale(16), 
+    fontWeight: "600" 
+  },
 });
