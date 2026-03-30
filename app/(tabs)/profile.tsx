@@ -3,8 +3,9 @@ import { useAuth } from "@/auth/useAuth";
 import { Colors } from "@/constants/Colors";
 import { DEFAULT_USER_AVATAR } from "@/constants/Images";
 import { Shadows } from "@/constants/Shadows";
+import { fetchAdminOverview } from "@/functions/api/admin";
 import { fetchComments } from "@/functions/api/comments";
-import { fetchReport, fetchReports } from "@/functions/api/reports";
+import { fetchReports } from "@/functions/api/reports";
 import { fetchToilets } from "@/functions/api/toilet";
 import { User } from "@/types/ui/User";
 import { withDefaultImage } from "@/utils/images";
@@ -62,11 +63,8 @@ export default function ProfileScreen() {
       loadProfile();
       queryClient.invalidateQueries({ queryKey: ["userComments"] });
       queryClient.invalidateQueries({ queryKey: ["userToilets"] });
-    
-      queryClient.invalidateQueries({ queryKey: ["myComments"] });
-      queryClient.invalidateQueries({ queryKey: ["myToilets"] });
-      queryClient.invalidateQueries({ queryKey: ["allComments"] });
-      queryClient.invalidateQueries({ queryKey: ["allToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["myReports"] });
+      queryClient.invalidateQueries({ queryKey: ["adminOverview"] });
     }, [loadProfile, queryClient]),
   );
 
@@ -103,32 +101,20 @@ export default function ProfileScreen() {
     enabled: !!userProfile,
   });
 
-  const { data: allCommentsData = [] } = useQuery({
-    queryKey: ["allComments"],
-    queryFn: fetchComments,
-    enabled: !!userProfile && userProfile?.type === "admin",
-  });
-
-  const { data: allToiletsData = [] } = useQuery({
-    queryKey: ["allToilets"],
-    queryFn: fetchToilets,
-    enabled: !!userProfile && userProfile?.type === "admin",
-  });
-
-  const { data: allReportData = [] } = useQuery({
-    queryKey: ["allReport"],
-    queryFn: fetchReports,
+  const { data: adminOverview } = useQuery({
+    queryKey: ["adminOverview"],
+    queryFn: fetchAdminOverview,
     enabled: !!userProfile && userProfile?.type === "admin",
   });
 
 
   const myCommentsCount = myCommentsData.length;
-  const myToiletsCount = myToiletsData.filter(toilet => toilet.status).length;
+  const myToiletsCount = myToiletsData.filter((toilet) => toilet.status).length;
   const myReportCount = myReportData.length;
-  
-  const allCommentsCount = allCommentsData.length;
-  const allToiletsCount = allToiletsData.filter(toilet => toilet.status).length;
-  const allReportCount = allReportData.length;
+
+  const allCommentsCount = adminOverview?.totals.comments ?? 0;
+  const allToiletsCount = adminOverview?.totals.toilets ?? 0;
+  const allReportCount = adminOverview?.totals.reports ?? 0;
 
   const myContributionItems = [
     {

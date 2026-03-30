@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, SectionList, FlatList, StyleSheet, Image,
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import PageHeader from "../../components/header";
 import { Statut } from "../../types/Statut";
+import { fetchAdminComments, fetchAdminReports, fetchAdminToilets } from "@/functions/api/admin";
 import { fetchComments } from "@/functions/api/comments";
 import { fetchToilets } from "@/functions/api/toilet";
 import { fetchReports } from "@/functions/api/reports";
@@ -103,7 +104,7 @@ export default function ContributionsScreen() {
   // Toutes les contributions (pour les admins uniquement)
   const { data: allComments = [] } = useQuery({
     queryKey: ["allComments"],
-    queryFn: fetchComments,
+    queryFn: fetchAdminComments,
     select: (apiComments) => {
       return apiComments.map(mapApiComment);
     },
@@ -115,7 +116,7 @@ export default function ContributionsScreen() {
 
   const { data: allToilets = [] } = useQuery({
     queryKey: ["allToilets"],
-    queryFn: fetchToilets,
+    queryFn: fetchAdminToilets,
     select: (apiToilets) => {
       return apiToilets
         .map(mapApiToilet)
@@ -129,7 +130,7 @@ export default function ContributionsScreen() {
 
   const { data: allReports = [] } = useQuery({
     queryKey: ["allReports"],
-    queryFn: fetchReports,
+    queryFn: fetchAdminReports,
     select: (apiReports) => {
       return apiReports.map(mapApiReport);
     },
@@ -199,13 +200,15 @@ export default function ContributionsScreen() {
     return labels[type];
   };
 
-  const getReportTypeIcon = (type: Report["type"]) => {
+  const getReportTypeIcon = (
+    type: Report["type"],
+  ): keyof typeof Ionicons.glyphMap => {
     const icons = {
       closed: "lock-closed",
       dirty: "alert-circle",
       maintenance: "construct",
       other: "help-circle",
-    };
+    } as const;
     return icons[type];
   };
 

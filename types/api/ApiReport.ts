@@ -9,3 +9,17 @@ export type ApiReport = {
   description: string;
   createdAt: string;
 };
+
+export type Report = {
+  userId: number;
+  toiletId: number;
+  type: "closed" | "dirty" | "maintenance" | "other";
+  description: string;
+};
+
+export type ReportCommentDto = {
+  userId: number;
+  commentId: number;
+  type: "spam" | "offensive" | "other";
+  description: string;
+};
