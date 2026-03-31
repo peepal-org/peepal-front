@@ -211,6 +211,12 @@ export default function ProfileScreen() {
     );
   }
 
+  const profilePhotoUrl = withDefaultImage(
+    userProfile.photoUrl ??
+      (userProfile as User & { photo_url?: string | null }).photo_url,
+    DEFAULT_USER_AVATAR,
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.headerBar}>
@@ -221,7 +227,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <Image
             source={{
-              uri: withDefaultImage(userProfile.photoUrl, DEFAULT_USER_AVATAR),
+              uri: profilePhotoUrl,
             }}
             style={[styles.avatar, Shadows.dp4]}
           />

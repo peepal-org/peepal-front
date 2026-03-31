@@ -641,7 +641,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#555",
     marginTop: 28,
-    textAlign: "center",
     fontWeight: "500",
   },
   reportHeader: {

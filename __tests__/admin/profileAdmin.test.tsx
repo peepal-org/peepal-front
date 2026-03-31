@@ -48,6 +48,7 @@ jest.mock("@expo/vector-icons", () => ({
 
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
+import { Image } from "react-native";
 import { getUserProfile } from "@/auth/authService";
 import ProfileScreen from "@/app/(tabs)/profile";
 
@@ -135,5 +136,20 @@ describe("Profile admin front behavior", () => {
     expect(
       adminOverviewCalls.every(([options]) => options.enabled === false),
     ).toBe(true);
+  });
+
+  it("uses the backend profile photo when it is returned as photo_url", async () => {
+    (getUserProfile as jest.Mock).mockResolvedValue({
+      ...baseUserProfile,
+      photoUrl: undefined,
+      photo_url: "https://example.com/avatar.jpg",
+    });
+
+    const { UNSAFE_getAllByType } = render(<ProfileScreen />);
+
+    await waitFor(() => {
+      const images = UNSAFE_getAllByType(Image);
+      expect(images[0].props.source.uri).toBe("https://example.com/avatar.jpg");
+    });
   });
 });
