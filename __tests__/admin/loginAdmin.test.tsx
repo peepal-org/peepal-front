@@ -2,107 +2,91 @@ jest.mock("@/auth/authService", () => ({
   login: jest.fn(),
 }));
 
+const mockReplace = jest.fn();
+const mockPush = jest.fn();
+const mockRefreshAuth = jest.fn();
+const mockToast = {
+  error: jest.fn(),
+  warning: jest.fn(),
+  success: jest.fn(),
+  info: jest.fn(),
+};
+
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ replace: mockReplace, push: mockPush }),
+}));
+
+jest.mock("@/auth/useAuth", () => ({
+  useAuth: () => ({ refreshAuth: mockRefreshAuth }),
+}));
+
+jest.mock("@/components/toast/useToast", () => ({
+  useToast: () => mockToast,
+}));
+
+jest.mock("@expo/vector-icons", () => ({
+  Ionicons: () => null,
+}));
+
+import React from "react";
+import { act, render, renderHook } from "@testing-library/react-native";
 import { login } from "@/auth/authService";
+import LoginScreen from "@/app/auth/login";
+import { useLoginViewModel } from "@/features/auth/useLoginViewModel";
 
-describe("LoginScreen Admin features", () => {
-  const mockAdminResponse = {
-    token: "admin-token-123",
-    user: {
-      id: 1,
-      name: "Admin User",
-      email: "admin@test.com",
-      type: "admin",
-      level: 10,
-      points: 5000,
-    },
-  };
-
-  const mockUserResponse = {
-    token: "user-token-456",
-    user: {
-      id: 2,
-      name: "Regular User",
-      email: "user@test.com",
-      type: "user",
-      level: 3,
-      points: 150,
-    },
-  };
-
+describe("Admin auth front behavior", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe("Admin login response", () => {
-    it("should return admin data", async () => {
-      (login as jest.Mock).mockResolvedValue(mockAdminResponse);
-
-      const response = await login("admin@test.com", "admin123");
-
-      expect(response.user.type).toBe("admin");
-      expect(response.token).toBe("admin-token-123");
+  it("submits the unified login flow for an admin account", async () => {
+    (login as jest.Mock).mockResolvedValue({
+      access_token: "admin-token-123",
+      user: {
+        id: 1,
+        email: "admin@test.com",
+        type: "admin",
+      },
     });
 
-    it("should identify admin by type", async () => {
-      (login as jest.Mock).mockResolvedValue(mockAdminResponse);
+    const { result } = renderHook(() => useLoginViewModel());
 
-      const response = await login("admin@test.com", "admin123");
-
-      const isAdmin = response.user.type === "admin";
-      expect(isAdmin).toBe(true);
+    act(() => {
+      result.current.setEmail("admin@test.com");
+      result.current.setPassword("admin123");
     });
+
+    await act(async () => {
+      await result.current.handleLogin();
+    });
+
+    expect(login).toHaveBeenCalledWith("admin@test.com", "admin123");
+    expect(mockRefreshAuth).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith("/(tabs)/map");
   });
 
-  describe("Admin and user difference", () => {
-    it("should differentiate admin from user", async () => {
-      (login as jest.Mock).mockResolvedValueOnce(mockAdminResponse);
-      const adminRes = await login("admin@test.com", "admin123");
+  it("shows only the unified login button on the screen", () => {
+    const { getByText, queryByText } = render(<LoginScreen />);
 
-      (login as jest.Mock).mockResolvedValueOnce(mockUserResponse);
-      const userRes = await login("user@test.com", "user123");
-
-      expect(adminRes.user.type).toBe("admin");
-      expect(userRes.user.type).toBe("user");
-
-      expect(adminRes.user.level).toBeGreaterThan(userRes.user.level);
-    });
-
-    it("should NOT treat regular user as admin", async () => {
-      (login as jest.Mock).mockResolvedValue(mockUserResponse);
-
-      const response = await login("user@test.com", "user123");
-
-      const isAdmin = response.user.type === "admin";
-      expect(isAdmin).toBe(false);
-    });
+    expect(getByText("Se connecter")).toBeTruthy();
+    expect(queryByText("Se connecter en tant qu'Admin")).toBeNull();
   });
 
-  describe("Admin login button", () => {
-    it("should allow admin login when form is valid", () => {
-      const isFormValid = true;
-      const isLoading = false;
+  it("shows an error toast when the login request fails", async () => {
+    (login as jest.Mock).mockRejectedValue(new Error("Identifiants invalides"));
 
-      const disabled = !isFormValid || isLoading;
+    const { result } = renderHook(() => useLoginViewModel());
 
-      expect(disabled).toBe(false);
+    act(() => {
+      result.current.setEmail("user@test.com");
+      result.current.setPassword("wrong-password");
     });
 
-    it("should disable admin login when loading", () => {
-      const isFormValid = true;
-      const isLoading = true;
-
-      const disabled = !isFormValid || isLoading;
-
-      expect(disabled).toBe(true);
+    await act(async () => {
+      await result.current.handleLogin();
     });
 
-    it("should disable admin login when form invalid", () => {
-      const isFormValid = false;
-      const isLoading = false;
-
-      const disabled = !isFormValid || isLoading;
-
-      expect(disabled).toBe(true);
-    });
+    expect(mockToast.error).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

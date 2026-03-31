@@ -1,9 +1,11 @@
-import React from "react";
-import { render, waitFor, act, fireEvent } from "@testing-library/react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { NavigationContainer } from "@react-navigation/native";
+const mockBack = jest.fn();
+const mockPush = jest.fn();
+const mockInvalidateQueries = jest.fn();
+const mockSetQueryData = jest.fn();
+const mockUseQuery = jest.fn();
 
-//Mocks 
+let mockToiletData: any;
+let mockCommentsData: any[];
 
 jest.mock("@/auth/authService", () => ({
   getUserProfile: jest.fn(),
@@ -11,293 +13,222 @@ jest.mock("@/auth/authService", () => ({
 
 jest.mock("@/functions/api/comments", () => ({
   deleteComment: jest.fn(),
+  fetchComments: jest.fn(),
 }));
 
 jest.mock("@/functions/api/toilet", () => ({
-  updateToilet: jest.fn(),
   deleteToilet: jest.fn(),
+  fetchToiletById: jest.fn(),
+  updateToilet: jest.fn(),
 }));
 
-jest.mock("@/features/toilet/useToiletDetailViewModel", () => ({
-  useToiletDetailViewModel: jest.fn(),
+jest.mock("@/functions/mappers/comments", () => ({
+  mapApiComment: (comment: any) => comment,
 }));
 
+jest.mock("@/functions/mappers/toilet", () => ({
+  mapApiToilet: (toilet: any) => toilet,
+}));
+
+jest.mock("@/utils/geocoding", () => ({
+  getAddressFromCoords: jest.fn(),
+}));
+
+jest.mock("expo-router", () => ({
+  useLocalSearchParams: () => ({ id: "10", commentId: "3" }),
+  useRouter: () => ({ back: mockBack, push: mockPush }),
+}));
+
+jest.mock("@react-navigation/native", () => ({
+  useFocusEffect: (callback: () => void) => callback(),
+}));
+
+jest.mock("@tanstack/react-query", () => ({
+  useQuery: (options: any) => mockUseQuery(options),
+  useQueryClient: () => ({
+    invalidateQueries: mockInvalidateQueries,
+    setQueryData: mockSetQueryData,
+  }),
+}));
+
+import { Alert } from "react-native";
+import { act, render, renderHook, waitFor } from "@testing-library/react-native";
 import { getUserProfile } from "@/auth/authService";
-import { updateToilet, deleteToilet } from "@/functions/api/toilet";
 import { deleteComment } from "@/functions/api/comments";
-import { useToiletDetailViewModel } from "@/features/toilet/useToiletDetailViewModel";
+import { updateToilet } from "@/functions/api/toilet";
+import { getAddressFromCoords } from "@/utils/geocoding";
 import ToiletDetailsScreen from "@/app/toilet/[id]";
-import type { ApiUser } from "@/types/api/ApiUser";
+import { useToiletDetailViewModel } from "@/features/toilet/useToiletDetailViewModel";
 
-const adminUser: ApiUser = {
-  id: 1,
-  name: "Admin User",
-  email: "admin@test.com",
-  type: "admin",
-};
+function setupAdminQueries() {
+  mockUseQuery.mockImplementation(({ queryKey, select }: any) => {
+    if (queryKey[0] === "toilets") {
+      return { data: mockToiletData, isLoading: false };
+    }
 
-const regularUser: ApiUser = {
-  id: 2,
-  name: "Regular User",
-  email: "user@test.com",
-  type: "user",
-};
+    if (queryKey[0] === "comments") {
+      const data = select ? select(mockCommentsData) : mockCommentsData;
+      return { data, isLoading: false };
+    }
 
-/**
- * Crée un QueryClient neuf par test (pas de cache partagé entre les tests)
- * et retourne un wrapper à passer à render().
- */
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+    return { data: undefined, isLoading: false };
   });
-  const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <NavigationContainer>{children}</NavigationContainer>
-    </QueryClientProvider>
-  );
-  return Wrapper;
-};
+}
 
-/** Retourne un ViewModel de base valide. Surcharger les champs nécessaires par test. */
-const buildBaseViewModel = (overrides: Record<string, any> = {}) => ({
-  toilet: {
-    id: 10,
-    name: "Toilettes Test",
-    statut: "accepted",  
-    accessible: true,
-    isOpen: true,
-    openingHours: "08h–20h",
-    image: null,
-  },
-  isLoading: false,
-  isAdmin: false,
-  address: "1 rue de la Paix, Paris",
-  averageRating: 4.2,
-  ratingCount: 5,
-  comments: [],
-  goBack: jest.fn(),
-  goToRate: jest.fn(),
-  goToReport: jest.fn(),
-  openInMaps: jest.fn(),
-  handleAcceptToilet: jest.fn(),
-  handleRejectToilet: jest.fn(),
-  handleDeleteToilet: jest.fn(),
-  handleDeleteComment: jest.fn(),
-  ...overrides,
-});
+describe("useToiletDetailViewModel admin behavior", () => {
+  let alertSpy: jest.SpyInstance;
 
-// Tests
-
-describe("ToiletDetailsScreen — Admin features", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockToiletData = {
+      id: 10,
+      name: "Toilettes Hôtel de Ville",
+      latitude: 48.8566,
+      longitude: 2.3522,
+      accessible: true,
+      isOpen: true,
+      openingHours: "24/7",
+      status: "waiting",
+      statut: "waiting",
+    };
+
+    mockCommentsData = [
+      {
+        id: 3,
+        toilet: { id: 10 },
+        content: "Très propre",
+        rating: 4,
+        dateLabel: "Aujourd'hui",
+        user: { id: "1", name: "Admin User", photoUrl: null },
+      },
+    ];
+
+    (getUserProfile as jest.Mock).mockResolvedValue({
+      id: 1,
+      name: "Admin User",
+      email: "admin@test.com",
+      type: "admin",
+    });
+
+    (getAddressFromCoords as jest.Mock).mockResolvedValue(
+      "1 place de l'Hôtel de Ville, Paris",
+    );
+
+    setupAdminQueries();
+    alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   });
 
-  describe("Admin detection", () => {
-    it("should detect admin correctly", async () => {
-      (getUserProfile as jest.Mock).mockResolvedValue(adminUser);
-
-      const profile = await getUserProfile();
-      expect(profile?.type).toBe("admin");
-    });
-
-    it("should not detect regular user as admin", async () => {
-      (getUserProfile as jest.Mock).mockResolvedValue(regularUser);
-
-      const profile = await getUserProfile();
-      expect(profile?.type).not.toBe("admin");
-    });
+  afterEach(() => {
+    alertSpy.mockRestore();
   });
 
-  describe("Admin status management", () => {
-    it("should call updateToilet with statut 'accepted' when accepting a toilet", async () => {
-      (updateToilet as jest.Mock).mockResolvedValue({ id: 10, statut: "accepted" });
+  it("detects admin mode from the stored profile", async () => {
+    const { result } = renderHook(() => useToiletDetailViewModel());
 
-      const handleAcceptToilet = jest.fn(async () => {
-        await updateToilet(10, { status: "accepted" }); 
-      });
-
-      (useToiletDetailViewModel as jest.Mock).mockReturnValue(
-        buildBaseViewModel({
-          isAdmin: true,
-          // "statut: waiting" obligatoire pour que Accepter/Rejeter s'affichent
-          toilet: {
-            id: 10,
-            name: "Toilettes Test",
-            statut: "waiting",           
-            accessible: true,
-            isOpen: true,
-            openingHours: "08h–20h",
-            image: null,
-          },
-          handleAcceptToilet,
-        })
-      );
-
-      const { getByText } = render(<ToiletDetailsScreen />, { wrapper: createWrapper() });
-
-      await act(async () => {
-        fireEvent.press(getByText("Accepter"));
-      });
-
-      expect(updateToilet).toHaveBeenCalledWith(10, { status: "accepted" });
+    await waitFor(() => {
+      expect(result.current.isAdmin).toBe(true);
     });
 
-    it("should call updateToilet with statut 'rejected' when rejecting a toilet", async () => {
-      (updateToilet as jest.Mock).mockResolvedValue({ id: 10, statut: "rejected" });
-
-      const handleRejectToilet = jest.fn(async () => {
-        await updateToilet(10, { status: "rejected" }); 
-      });
-
-      (useToiletDetailViewModel as jest.Mock).mockReturnValue(
-        buildBaseViewModel({
-          isAdmin: true,
-          toilet: {
-            id: 10,
-            name: "Toilettes Test",
-            statut: "waiting",           
-            accessible: true,
-            isOpen: true,
-            openingHours: "08h–20h",
-            image: null,
-          },
-          handleRejectToilet,
-        })
-      );
-
-      const { getByText } = render(<ToiletDetailsScreen />, { wrapper: createWrapper() });
-
-      await act(async () => {
-        fireEvent.press(getByText("Rejeter"));
-      });
-
-      expect(updateToilet).toHaveBeenCalledWith(10, { status: "rejected" });
-    });
+    expect(result.current.toilet?.id).toBe(10);
+    expect(result.current.comments).toHaveLength(1);
+    expect(result.current.averageRating).toBe(4);
   });
 
-  describe("Admin deletion", () => {
-    it("should call deleteToilet when admin presses 'Supprimer'", async () => {
-      (deleteToilet as jest.Mock).mockResolvedValue({ success: true });
-
-      const handleDeleteToilet = jest.fn(async () => {
-        await deleteToilet(10);
-      });
-
-      (useToiletDetailViewModel as jest.Mock).mockReturnValue(
-        buildBaseViewModel({ isAdmin: true, handleDeleteToilet })
-      );
-
-      const { getByText } = render(<ToiletDetailsScreen />, { wrapper: createWrapper() });
-
-      await act(async () => {
-        fireEvent.press(getByText("Supprimer"));
-      });
-
-      expect(deleteToilet).toHaveBeenCalledWith(10);
+  it("accepts a waiting toilet after the admin confirmation", async () => {
+    (updateToilet as jest.Mock).mockResolvedValue({
+      id: 10,
+      status: "accepted",
     });
 
-    it("should call deleteComment with correct id when admin deletes a comment", async () => {
-      (deleteComment as jest.Mock).mockResolvedValue({ success: true });
+    const { result } = renderHook(() => useToiletDetailViewModel());
 
-      const handleDeleteComment = jest.fn(async (id: number) => {
-        await deleteComment(id);
-      });
+    await waitFor(() => {
+      expect(result.current.isAdmin).toBe(true);
+    });
 
-      (useToiletDetailViewModel as jest.Mock).mockReturnValue(
-        buildBaseViewModel({
-          isAdmin: true,
-          handleDeleteComment,
-          comments: [
-            {
-              id: 1,
-              content: "Super propre !",
-              rating: 5,
-              dateLabel: "10 jan. 2025",
-              user: { name: "Alice", photoUrl: null },
-            },
-          ],
-        })
-      );
+    act(() => {
+      result.current.handleAcceptToilet();
+    });
 
-      const { UNSAFE_getAllByType } = render(<ToiletDetailsScreen />, { wrapper: createWrapper() });
+    const confirmButtons = alertSpy.mock.calls[0]?.[2] as
+      | Array<{ onPress?: () => void | Promise<void> }>
+      | undefined;
 
-      // Le TouchableOpacity de suppression est le dernier rendu dans la carte commentaire
-      const { TouchableOpacity } = require("react-native");
-      const touchables = UNSAFE_getAllByType(TouchableOpacity);
-      const deleteBtn = touchables[touchables.length - 1];
+    await act(async () => {
+      await confirmButtons?.[1]?.onPress?.();
+    });
 
-      await act(async () => {
-        deleteBtn.props.onPress();
-      });
-
-      expect(deleteComment).toHaveBeenCalledWith(1);
+    expect(updateToilet).toHaveBeenCalledWith(10, { status: "accepted" });
+    expect(mockSetQueryData).toHaveBeenCalled();
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["toilets", 10],
     });
   });
 
-  describe("Admin UI visibility", () => {
-    it("should show admin buttons when user is admin", async () => {
-      (useToiletDetailViewModel as jest.Mock).mockReturnValue(
-        buildBaseViewModel({ isAdmin: true })
-      );
+  it("deletes a comment after admin confirmation", async () => {
+    (deleteComment as jest.Mock).mockResolvedValue({ success: true });
 
-      const { getByText } = render(<ToiletDetailsScreen />, { wrapper: createWrapper() });
+    const { result } = renderHook(() => useToiletDetailViewModel());
 
-      await waitFor(() => {
-        expect(getByText("Supprimer")).toBeTruthy();
-      });
+    await waitFor(() => {
+      expect(result.current.isAdmin).toBe(true);
     });
 
-    it("should NOT show admin buttons for regular user", async () => {
-      (useToiletDetailViewModel as jest.Mock).mockReturnValue(
-        buildBaseViewModel({ isAdmin: false })
-      );
-
-      const { queryByText } = render(<ToiletDetailsScreen />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(queryByText("Supprimer")).toBeNull();
-        expect(queryByText("Accepter")).toBeNull();
-        expect(queryByText("Rejeter")).toBeNull();
-      });
+    act(() => {
+      result.current.handleDeleteComment(3);
     });
 
-    it("should show 'Accepter' and 'Rejeter' only when toilet statut is 'waiting'", async () => {
-      (useToiletDetailViewModel as jest.Mock).mockReturnValue(
-        buildBaseViewModel({
-          isAdmin: true,
-          toilet: {
-            id: 10,
-            name: "Toilettes Test",
-            statut: "waiting",           
-            accessible: true,
-            isOpen: true,
-            openingHours: "08h–20h",
-            image: null,
-          },
-        })
-      );
+    const confirmButtons = alertSpy.mock.calls[0]?.[2] as
+      | Array<{ onPress?: () => void | Promise<void> }>
+      | undefined;
 
-      const { getByText } = render(<ToiletDetailsScreen />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(getByText("Accepter")).toBeTruthy();
-        expect(getByText("Rejeter")).toBeTruthy();
-      });
+    await act(async () => {
+      await confirmButtons?.[1]?.onPress?.();
     });
 
-    it("should NOT show 'Accepter' and 'Rejeter' when toilet is already accepted", async () => {
-      (useToiletDetailViewModel as jest.Mock).mockReturnValue(
-        buildBaseViewModel({ isAdmin: true }) 
-      );
-
-      const { queryByText } = render(<ToiletDetailsScreen />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(queryByText("Accepter")).toBeNull();
-        expect(queryByText("Rejeter")).toBeNull();
-      });
+    expect(deleteComment).toHaveBeenCalledWith(3);
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["comments", 10],
     });
+  });
+
+  it("blocks moderation actions for a regular user", async () => {
+    (getUserProfile as jest.Mock).mockResolvedValueOnce({
+      id: 2,
+      name: "Regular User",
+      email: "user@test.com",
+      type: "user",
+    });
+
+    const { result } = renderHook(() => useToiletDetailViewModel());
+
+    await waitFor(() => {
+      expect(result.current.isAdmin).toBe(false);
+    });
+
+    act(() => {
+      result.current.handleAcceptToilet();
+      result.current.handleRejectToilet();
+      result.current.handleDeleteComment(3);
+      result.current.handleDeleteToilet();
+    });
+
+    expect(alertSpy).toHaveBeenCalledTimes(4);
+    expect(alertSpy).toHaveBeenCalledWith(
+      "Accès refusé",
+      "Cette action est réservée aux administrateurs.",
+    );
+    expect(deleteComment).not.toHaveBeenCalled();
+  });
+
+  it("hides the comment report button for the current user's own comment", async () => {
+    const { queryByText } = render(<ToiletDetailsScreen />);
+
+    await waitFor(() => {
+      expect(queryByText("Admin User")).toBeTruthy();
+    });
+
+    expect(queryByText("Signaler")).toBeNull();
   });
 });

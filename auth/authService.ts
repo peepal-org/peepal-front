@@ -20,15 +20,11 @@ export const getUserProfile = async (): Promise<User | null> => {
   }
 };
 
-export const login = async (
-  email: string, 
-  password: string, 
-  loginAsAdmin: boolean = false
-) => {
+export const login = async (email: string, password: string) => {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, loginAsAdmin }),
+    body: JSON.stringify({ email, password }),
   });
 
   if (!res.ok) {

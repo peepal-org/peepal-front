@@ -5,6 +5,7 @@ import { DEFAULT_USER_AVATAR } from "@/constants/Images";
 import { Shadows } from "@/constants/Shadows";
 import { fetchAdminOverview } from "@/functions/api/admin";
 import { fetchComments } from "@/functions/api/comments";
+import { fetchMyCommentReports } from "@/functions/api/commentReports";
 import { fetchReports } from "@/functions/api/reports";
 import { fetchToilets } from "@/functions/api/toilet";
 import { User } from "@/types/ui/User";
@@ -64,6 +65,7 @@ export default function ProfileScreen() {
       queryClient.invalidateQueries({ queryKey: ["userComments"] });
       queryClient.invalidateQueries({ queryKey: ["userToilets"] });
       queryClient.invalidateQueries({ queryKey: ["myReports"] });
+      queryClient.invalidateQueries({ queryKey: ["myCommentReports"] });
       queryClient.invalidateQueries({ queryKey: ["adminOverview"] });
     }, [loadProfile, queryClient]),
   );
@@ -90,6 +92,12 @@ export default function ProfileScreen() {
     enabled: !!userProfile,
   });
 
+  const { data: myCommentReportData = [] } = useQuery({
+    queryKey: ["myCommentReports", userProfile?.id],
+    queryFn: fetchMyCommentReports,
+    enabled: !!userProfile,
+  });
+
   const { data: myToiletsData = [] } = useQuery({
     queryKey: ["myToilets", userProfile?.id],
     queryFn: fetchToilets,
@@ -110,7 +118,7 @@ export default function ProfileScreen() {
 
   const myCommentsCount = myCommentsData.length;
   const myToiletsCount = myToiletsData.filter((toilet) => toilet.status).length;
-  const myReportCount = myReportData.length;
+  const myReportCount = myReportData.length + myCommentReportData.length;
 
   const allCommentsCount = adminOverview?.totals.comments ?? 0;
   const allToiletsCount = adminOverview?.totals.toilets ?? 0;

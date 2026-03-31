@@ -3,13 +3,21 @@ import { View, Text, TouchableOpacity, SectionList, FlatList, StyleSheet, Image,
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import PageHeader from "../../components/header";
 import { Statut } from "../../types/Statut";
-import { fetchAdminComments, fetchAdminReports, fetchAdminToilets } from "@/functions/api/admin";
+import {
+  fetchAdminComments,
+  fetchAdminReports,
+  fetchAdminToilets,
+} from "@/functions/api/admin";
+import {
+  fetchAdminCommentReports,
+  fetchMyCommentReports,
+} from "@/functions/api/commentReports";
 import { fetchComments } from "@/functions/api/comments";
 import { fetchToilets } from "@/functions/api/toilet";
 import { fetchReports } from "@/functions/api/reports";
 import { mapApiComment } from "@/functions/mappers/comments";
+import { mapApiCommentReport, mapApiReport } from "@/functions/mappers/reports";
 import { mapApiToilet } from "@/functions/mappers/toilet";
-import { mapApiReport } from "@/functions/mappers/reports";
 import type { ApiUser } from "@/types/api/ApiUser";
 import type { Comment } from "@/types/ui/Comment";
 import type { Toilet } from "@/types/ui/Toilet";
@@ -48,14 +56,17 @@ export default function ContributionsScreen() {
       queryClient.invalidateQueries({ queryKey: ["myComments"] });
       queryClient.invalidateQueries({ queryKey: ["myToilets"] });
       queryClient.invalidateQueries({ queryKey: ["myReports"] });
+      queryClient.invalidateQueries({ queryKey: ["myCommentReports"] });
       queryClient.invalidateQueries({ queryKey: ["allComments"] });
       queryClient.invalidateQueries({ queryKey: ["allToilets"] });
       queryClient.invalidateQueries({ queryKey: ["allReports"] });
+      queryClient.invalidateQueries({ queryKey: ["allCommentReports"] });
     }, [queryClient])
   );
 
   // Déterminer le scope (personal ou all) depuis les paramètres
   const scope = (params.scope as string) || "personal";
+  const isAdminUser = userProfile?.type === "admin";
 
   // Contributions personnelles
   const { data: myComments = [] } = useQuery({
@@ -101,6 +112,16 @@ export default function ContributionsScreen() {
     refetchOnWindowFocus: true,
   });
 
+  const { data: myCommentReports = [] } = useQuery({
+    queryKey: ["myCommentReports", userProfile?.id],
+    queryFn: fetchMyCommentReports,
+    select: (apiReports) => apiReports.map(mapApiCommentReport),
+    enabled: !!userProfile && scope === "personal",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
   // Toutes les contributions (pour les admins uniquement)
   const { data: allComments = [] } = useQuery({
     queryKey: ["allComments"],
@@ -134,7 +155,17 @@ export default function ContributionsScreen() {
     select: (apiReports) => {
       return apiReports.map(mapApiReport);
     },
-    enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
+    enabled: !!userProfile && isAdminUser && scope === "all",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: allCommentReports = [] } = useQuery({
+    queryKey: ["allCommentReports"],
+    queryFn: fetchAdminCommentReports,
+    select: (apiReports) => apiReports.map(mapApiCommentReport),
+    enabled: !!userProfile && isAdminUser && scope === "all",
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -143,7 +174,13 @@ export default function ContributionsScreen() {
   // Sélectionner les bonnes données selon le scope
   const userComments = scope === "all" ? allComments : myComments;
   const userToilets = scope === "all" ? allToilets : myToilets;
-  const userReports = scope === "all" ? allReports : myReports;
+  const userReports = (scope === "all"
+    ? [...allReports, ...allCommentReports]
+    : [...myReports, ...myCommentReports]
+  ).sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   const data = {
     commentaires: userComments,
@@ -191,10 +228,12 @@ export default function ContributionsScreen() {
   };
 
   const getReportTypeLabel = (type: Report["type"]) => {
-    const labels = {
+    const labels: Record<Report["type"], string> = {
       closed: "Fermé",
       dirty: "Sale",
       maintenance: "En maintenance",
+      spam: "Spam",
+      offensive: "Offensant",
       other: "Autre",
     };
     return labels[type];
@@ -203,12 +242,14 @@ export default function ContributionsScreen() {
   const getReportTypeIcon = (
     type: Report["type"],
   ): keyof typeof Ionicons.glyphMap => {
-    const icons = {
+    const icons: Record<Report["type"], keyof typeof Ionicons.glyphMap> = {
       closed: "lock-closed",
       dirty: "alert-circle",
       maintenance: "construct",
+      spam: "flag",
+      offensive: "warning",
       other: "help-circle",
-    } as const;
+    };
     return icons[type];
   };
 
@@ -292,49 +333,62 @@ export default function ContributionsScreen() {
     </TouchableOpacity>
   );
 
-  const renderReportItem = (report: Report) => (
-    <TouchableOpacity
-      style={styles.item}
-      onPress={() => router.push(`/toilet/${report.toiletId}`)}
-    >
-      <View style={styles.reportImageContainer}>
-        <Image
-          source={{ uri: report.toiletImage || DEFAULT_TOILET_IMAGE }}
-          style={styles.image}
-        />
-        <Text style={styles.reportToiletNameBelow} numberOfLines={1}>
-          {report.toiletName}
-        </Text>
-      </View>
-      <View style={styles.itemContent}>
-        <View style={styles.reportHeader}>
-          <Text style={styles.reportUserName}>{report.userName}</Text>
-          <Text style={styles.dateLabel}>
-            {report.dateLabel.replace(/(\d+)([hms])/g, '$1 $2')}
-          </Text>
-        </View>
+  const renderReportItem = (report: Report) => {
+    const targetIcon =
+      report.targetType === "comment" ? "chatbubble-outline" : "water-outline";
+    const targetLabel =
+      report.targetType === "comment" ? "Commentaire" : "Toilette";
 
-        <View style={styles.reportTypeContainer}>
-          <Ionicons 
-            name={getReportTypeIcon(report.type)} 
-            size={16} 
-            color="#666" 
+    return (
+      <TouchableOpacity
+        style={styles.item}
+        onPress={() => router.push(`/toilet/${report.toiletId}`)}
+      >
+        <View style={styles.reportImageContainer}>
+          <Image
+            source={{ uri: report.toiletImage || DEFAULT_TOILET_IMAGE }}
+            style={styles.image}
           />
-          <Text style={styles.reportTypeText}>
-            {getReportTypeLabel(report.type)}
+          <Text style={styles.reportToiletNameBelow} numberOfLines={2}>
+            {report.toiletName}
           </Text>
         </View>
 
-        {report.description && (
-          <Text style={styles.reportDescription} numberOfLines={4}>
-            {report.description}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.itemContent}>
+          <Text style={styles.reportUserName}>{report.userName}</Text>
 
-  const toiletSections = userProfile?.type === "admin" && scope === "all"
+          <View style={styles.reportTypeContainer}>
+            <Ionicons
+              name={getReportTypeIcon(report.type)}
+              size={16}
+              color="#666"
+            />
+            <Text style={styles.reportTypeText}>
+              {getReportTypeLabel(report.type)}
+            </Text>
+          </View>
+
+          {report.description ? (
+            <Text style={styles.reportDescription} numberOfLines={4}>
+              {report.description}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.reportMetaRight}>
+          <Text style={styles.dateLabel}>
+            {report.dateLabel.replace(/(\d+)([hms])/g, "$1 $2")}
+          </Text>
+          <View style={styles.reportTargetContainer}>
+            <Ionicons name={targetIcon} size={16} color="#666" />
+            <Text style={styles.reportTargetText}>{targetLabel}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const toiletSections = isAdminUser && scope === "all"
     ? [
         { title: "En attente", data: userToilets.filter((t) => t.statut === "waiting") },
         { title: "Rejetés", data: userToilets.filter((t) => t.statut === "rejected") },
@@ -345,7 +399,21 @@ export default function ContributionsScreen() {
   // Titre dynamique selon le scope
   const pageTitle = scope === "all" ? "Contributions (tous les utilisateurs)" : "Mes contributions";
 
-  
+  if (scope === "all" && userProfile && !isAdminUser) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <PageHeader title="Profile" onBack={handleBack} />
+        <View style={styles.emptyContainer}>
+          <Ionicons name="lock-closed-outline" size={64} color="#ccc" />
+          <Text style={styles.emptyTitle}>Accès réservé aux administrateurs</Text>
+          <Text style={styles.emptyDescription}>
+            Cette section n'est pas disponible pour un compte standard.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Composants pour les listes vides
   const EmptyToiletsComponent = () => (
     <View style={styles.emptyContainer}>
@@ -435,7 +503,7 @@ export default function ContributionsScreen() {
         ) : (
           <FlatList
             data={data.signalements}
-            keyExtractor={(item) => `signalements-${item.id}`}
+            keyExtractor={(item) => `signalements-${item.targetType}-${item.id}`}
             renderItem={({ item }) => renderReportItem(item)}
             ListEmptyComponent={EmptySignalementsComponent}
           />
@@ -572,7 +640,7 @@ const styles = StyleSheet.create({
   reportToiletNameBelow: {
     fontSize: 12,
     color: "#555",
-    marginTop: 6,
+    marginTop: 28,
     textAlign: "center",
     fontWeight: "500",
   },
@@ -608,6 +676,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#888",
     lineHeight: 18,
+  },
+  reportMetaRight: {
+    minWidth: 72,
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    alignSelf: "stretch",
+    marginLeft: 12,
+  },
+  reportTargetContainer: {
+    alignItems: "center",
+    gap: 4,
+  },
+  reportTargetText: {
+    fontSize: 11,
+    color: "#666",
+    fontWeight: "500",
   },
   bufferBase: {
     paddingHorizontal: 12,

@@ -1,3 +1,12 @@
+export type ReportTargetType = "toilet" | "comment";
+export type ReportIssueType =
+  | "closed"
+  | "dirty"
+  | "maintenance"
+  | "spam"
+  | "offensive"
+  | "other";
+
 export type Report = {
   id: number;
   userId: number;
@@ -6,8 +15,10 @@ export type Report = {
   toiletId: number;
   toiletName: string;
   toiletImage?: string | null;
-  type: "closed" | "dirty" | "maintenance" | "other";
+  commentId?: number;
+  type: ReportIssueType;
   description: string;
   createdAt: string;
   dateLabel: string;
+  targetType: ReportTargetType;
 };
