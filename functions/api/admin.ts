@@ -8,7 +8,6 @@ export type AdminOverview = {
   totals: {
     users: number;
     admins: number;
-    moderators: number;
     toilets: number;
     pendingToilets: number;
     comments: number;
@@ -38,7 +37,7 @@ export function fetchAdminReports() {
 
 export function updateAdminUserType(
   id: number,
-  type: 'user' | 'admin' | 'moderator',
+  type: 'user' | 'admin',
 ) {
   return apiFetch<ApiUser>(`/admin/users/${id}/type`, {
     method: 'PATCH',
