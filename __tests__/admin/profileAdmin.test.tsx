@@ -2,115 +2,154 @@ jest.mock("@/auth/authService", () => ({
   getUserProfile: jest.fn(),
 }));
 
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockSignOut = jest.fn();
+const mockInvalidateQueries = jest.fn();
+const mockUseQuery = jest.fn();
+
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useFocusEffect: () => undefined,
+}));
+
+jest.mock("@/auth/useAuth", () => ({
+  useAuth: () => ({ signOut: mockSignOut }),
+}));
+
+jest.mock("@/functions/api/admin", () => ({
+  fetchAdminOverview: jest.fn(),
+}));
+
 jest.mock("@/functions/api/comments", () => ({
   fetchComments: jest.fn(),
+}));
+
+jest.mock("@/functions/api/reports", () => ({
+  fetchReports: jest.fn(),
+}));
+
+jest.mock("@/functions/api/commentReports", () => ({
+  fetchMyCommentReports: jest.fn(),
 }));
 
 jest.mock("@/functions/api/toilet", () => ({
   fetchToilets: jest.fn(),
 }));
 
+jest.mock("@tanstack/react-query", () => ({
+  useQuery: (options: any) => mockUseQuery(options),
+  useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
+}));
+
+jest.mock("@expo/vector-icons", () => ({
+  Ionicons: () => null,
+}));
+
+import React from "react";
+import { render, waitFor } from "@testing-library/react-native";
+import { Image } from "react-native";
 import { getUserProfile } from "@/auth/authService";
-import { fetchComments } from "@/functions/api/comments";
-import { fetchToilets } from "@/functions/api/toilet";
-import type { ApiUser } from "@/types/api/ApiUser";
+import ProfileScreen from "@/app/(tabs)/profile";
 
-describe("ProfileScreen Admin features", () => {
-  const adminUser: ApiUser = {
-    id: 1,
-    name: "Admin",
-    email: "admin@test.com",
-    type: "admin",
-  };
+const baseUserProfile = {
+  id: 1,
+  name: "Test User",
+  email: "user@test.com",
+  createdAt: "2026-03-31T00:00:00.000Z",
+  role: "user" as const,
+  type: "user",
+  photoUrl: null,
+  bio: "bio",
+  points: 42,
+  level: 3,
+};
 
-  const regularUser: ApiUser = {
-    id: 2,
-    name: "User",
-    email: "user@test.com",
-    type: "user",
-  };
+function setupQueryMocks() {
+  mockUseQuery.mockImplementation(({ queryKey, enabled }: any) => {
+    switch (queryKey[0]) {
+      case "myComments":
+        return { data: enabled ? [{ id: 1 }, { id: 2 }] : [] };
+      case "myReports":
+        return { data: enabled ? [{ id: 1 }] : [] };
+      case "myCommentReports":
+        return { data: enabled ? [] : [] };
+      case "myToilets":
+        return { data: enabled ? [{ id: 1, status: "accepted" }] : [] };
+      case "adminOverview":
+        return {
+          data: enabled
+            ? { totals: { comments: 12, toilets: 4, reports: 3 } }
+            : undefined,
+        };
+      default:
+        return { data: [], isLoading: false };
+    }
+  });
+}
 
+describe("Profile admin front behavior", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    setupQueryMocks();
   });
 
-  describe("Admin detection", () => {
-    it("should detect admin correctly", async () => {
-      (getUserProfile as jest.Mock).mockResolvedValue(adminUser);
-
-      const profile = await getUserProfile();
-      const isAdmin = profile?.type === "admin";
-
-      expect(isAdmin).toBe(true);
+  it("shows the global admin contributions block for admin users", async () => {
+    (getUserProfile as jest.Mock).mockResolvedValue({
+      ...baseUserProfile,
+      name: "Admin User",
+      role: "admin",
+      type: "admin",
     });
 
-    it("should NOT detect regular user as admin", async () => {
-      (getUserProfile as jest.Mock).mockResolvedValue(regularUser);
+    const { getByText } = render(<ProfileScreen />);
 
-      const profile = await getUserProfile();
-      const isAdmin = profile?.type === "admin";
-
-      expect(isAdmin).toBe(false);
+    await waitFor(() => {
+      expect(getByText("Admin User")).toBeTruthy();
+      expect(getByText("Contributions (tous les utilisateurs)")).toBeTruthy();
     });
+
+    const adminOverviewCalls = mockUseQuery.mock.calls.filter(
+      ([options]) => options.queryKey[0] === "adminOverview",
+    );
+
+    expect(
+      adminOverviewCalls.some(([options]) => options.enabled === true),
+    ).toBe(true);
   });
 
-  describe("Admin queries enabling", () => {
-    it("should enable allComments query for admin", async () => {
-      (getUserProfile as jest.Mock).mockResolvedValue(adminUser);
+  it("keeps the global admin contributions block hidden for regular users", async () => {
+    (getUserProfile as jest.Mock).mockResolvedValue(baseUserProfile);
 
-      const profile = await getUserProfile();
-      const shouldEnableAllComments =
-        !!profile && profile.type === "admin";
+    const { getByText, queryByText } = render(<ProfileScreen />);
 
-      expect(shouldEnableAllComments).toBe(true);
+    await waitFor(() => {
+      expect(getByText("Test User")).toBeTruthy();
     });
 
-    it("should enable allToilets query for admin", async () => {
-      (getUserProfile as jest.Mock).mockResolvedValue(adminUser);
+    expect(queryByText("Contributions (tous les utilisateurs)")).toBeNull();
 
-      const profile = await getUserProfile();
-      const shouldEnableAllToilets =
-        !!profile && profile.type === "admin";
+    const adminOverviewCalls = mockUseQuery.mock.calls.filter(
+      ([options]) => options.queryKey[0] === "adminOverview",
+    );
 
-      expect(shouldEnableAllToilets).toBe(true);
-    });
-
-    it("should NOT enable global queries for regular user", async () => {
-      (getUserProfile as jest.Mock).mockResolvedValue(regularUser);
-
-      const profile = await getUserProfile();
-      const shouldEnableGlobalQueries =
-        !!profile && profile.type === "admin";
-
-      expect(shouldEnableGlobalQueries).toBe(false);
-    });
+    expect(
+      adminOverviewCalls.every(([options]) => options.enabled === false),
+    ).toBe(true);
   });
 
-  describe("Admin global counts", () => {
-    it("should compute global comments count", async () => {
-      (fetchComments as jest.Mock).mockResolvedValue([
-        { id: 1 },
-        { id: 2 },
-        { id: 3 },
-      ]);
-
-      const comments = await fetchComments();
-      const count = comments.length;
-
-      expect(count).toBe(3);
+  it("uses the backend profile photo when it is returned as photo_url", async () => {
+    (getUserProfile as jest.Mock).mockResolvedValue({
+      ...baseUserProfile,
+      photoUrl: undefined,
+      photo_url: "https://example.com/avatar.jpg",
     });
 
-    it("should compute global toilets count (only with status)", async () => {
-      (fetchToilets as jest.Mock).mockResolvedValue([
-        { id: 1, status: "accepted" },
-        { id: 2, status: null },
-        { id: 3, status: "waiting" },
-      ]);
+    const { UNSAFE_getAllByType } = render(<ProfileScreen />);
 
-      const toilets = await fetchToilets();
-      const count = toilets.filter(t => t.status).length;
-
-      expect(count).toBe(2);
+    await waitFor(() => {
+      const images = UNSAFE_getAllByType(Image);
+      expect(images[0].props.source.uri).toBe("https://example.com/avatar.jpg");
     });
   });
 });

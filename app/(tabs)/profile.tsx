@@ -3,8 +3,10 @@ import { useAuth } from "@/auth/useAuth";
 import { Colors } from "@/constants/Colors";
 import { DEFAULT_USER_AVATAR } from "@/constants/Images";
 import { Shadows } from "@/constants/Shadows";
+import { fetchAdminOverview } from "@/functions/api/admin";
 import { fetchComments } from "@/functions/api/comments";
-import { fetchReport, fetchReports } from "@/functions/api/reports";
+import { fetchMyCommentReports } from "@/functions/api/commentReports";
+import { fetchReports } from "@/functions/api/reports";
 import { fetchToilets } from "@/functions/api/toilet";
 import { User } from "@/types/ui/User";
 import { withDefaultImage } from "@/utils/images";
@@ -62,11 +64,9 @@ export default function ProfileScreen() {
       loadProfile();
       queryClient.invalidateQueries({ queryKey: ["userComments"] });
       queryClient.invalidateQueries({ queryKey: ["userToilets"] });
-    
-      queryClient.invalidateQueries({ queryKey: ["myComments"] });
-      queryClient.invalidateQueries({ queryKey: ["myToilets"] });
-      queryClient.invalidateQueries({ queryKey: ["allComments"] });
-      queryClient.invalidateQueries({ queryKey: ["allToilets"] });
+      queryClient.invalidateQueries({ queryKey: ["myReports"] });
+      queryClient.invalidateQueries({ queryKey: ["myCommentReports"] });
+      queryClient.invalidateQueries({ queryKey: ["adminOverview"] });
     }, [loadProfile, queryClient]),
   );
 
@@ -92,6 +92,12 @@ export default function ProfileScreen() {
     enabled: !!userProfile,
   });
 
+  const { data: myCommentReportData = [] } = useQuery({
+    queryKey: ["myCommentReports", userProfile?.id],
+    queryFn: fetchMyCommentReports,
+    enabled: !!userProfile,
+  });
+
   const { data: myToiletsData = [] } = useQuery({
     queryKey: ["myToilets", userProfile?.id],
     queryFn: fetchToilets,
@@ -103,32 +109,20 @@ export default function ProfileScreen() {
     enabled: !!userProfile,
   });
 
-  const { data: allCommentsData = [] } = useQuery({
-    queryKey: ["allComments"],
-    queryFn: fetchComments,
-    enabled: !!userProfile && userProfile?.type === "admin",
-  });
-
-  const { data: allToiletsData = [] } = useQuery({
-    queryKey: ["allToilets"],
-    queryFn: fetchToilets,
-    enabled: !!userProfile && userProfile?.type === "admin",
-  });
-
-  const { data: allReportData = [] } = useQuery({
-    queryKey: ["allReport"],
-    queryFn: fetchReports,
+  const { data: adminOverview } = useQuery({
+    queryKey: ["adminOverview"],
+    queryFn: fetchAdminOverview,
     enabled: !!userProfile && userProfile?.type === "admin",
   });
 
 
   const myCommentsCount = myCommentsData.length;
-  const myToiletsCount = myToiletsData.filter(toilet => toilet.status).length;
-  const myReportCount = myReportData.length;
-  
-  const allCommentsCount = allCommentsData.length;
-  const allToiletsCount = allToiletsData.filter(toilet => toilet.status).length;
-  const allReportCount = allReportData.length;
+  const myToiletsCount = myToiletsData.filter((toilet) => toilet.status).length;
+  const myReportCount = myReportData.length + myCommentReportData.length;
+
+  const allCommentsCount = adminOverview?.totals.comments ?? 0;
+  const allToiletsCount = adminOverview?.totals.toilets ?? 0;
+  const allReportCount = adminOverview?.totals.reports ?? 0;
 
   const myContributionItems = [
     {
@@ -217,6 +211,12 @@ export default function ProfileScreen() {
     );
   }
 
+  const profilePhotoUrl = withDefaultImage(
+    userProfile.photoUrl ??
+      (userProfile as User & { photo_url?: string | null }).photo_url,
+    DEFAULT_USER_AVATAR,
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.headerBar}>
@@ -227,7 +227,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <Image
             source={{
-              uri: withDefaultImage(userProfile.photoUrl, DEFAULT_USER_AVATAR),
+              uri: profilePhotoUrl,
             }}
             style={[styles.avatar, Shadows.dp4]}
           />

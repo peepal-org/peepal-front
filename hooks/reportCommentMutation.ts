@@ -17,7 +17,9 @@ export const useCreateReportCommentMutation = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comment-report"] });
-
+      queryClient.invalidateQueries({ queryKey: ["myCommentReports"] });
+      queryClient.invalidateQueries({ queryKey: ["allCommentReports"] });
+      queryClient.invalidateQueries({ queryKey: ["adminOverview"] });
 
       toast.success("Rapport envoyé ✅ Merci pour ta contribution.");
       router.replace("/(tabs)/map");
