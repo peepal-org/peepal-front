@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "backgroundModes": ["location"]
+      "backgroundModes": [
+        "location",
+        "location"
+      ],
+      "bundleIdentifier": "com.anonymous.peepalfront"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +25,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["ACCESS_BACKGROUND_LOCATION"]
+      "permissions": [
+        "ACCESS_BACKGROUND_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.anonymous.peepalfront"
     },
     "web": {
       "output": "static",

@@ -19,20 +19,24 @@ export function useLocationNotifications(enabled: boolean) {
 }
 
 async function startLocationTask() {
+  console.log("[LocationNotifications] starting...");
   try {
     //  Permission notifications
     const { status: notifStatus } =
       await Notifications.requestPermissionsAsync();
+    console.log("[LocationNotifications] notif permission:", notifStatus);
     if (notifStatus !== "granted") return;
 
     //  Permission foreground
     const { status: fgStatus } =
       await Location.requestForegroundPermissionsAsync();
+    console.log("[LocationNotifications] fg permission:", fgStatus);
     if (fgStatus !== "granted") return;
 
     //  Permission background
     const { status: bgStatus } =
       await Location.requestBackgroundPermissionsAsync();
+    console.log("[LocationNotifications] bg permission:", bgStatus);
     if (bgStatus !== "granted") return;
 
     // Start tas
@@ -43,7 +47,8 @@ async function startLocationTask() {
 
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.Balanced,
-      distanceInterval: 100, // every 100m
+      // distanceInterval: 100, // every 100m
+      distanceInterval: 0, // when you move
       showsBackgroundLocationIndicator: true, // for iOS
       foregroundService: {
         // Android
@@ -51,6 +56,7 @@ async function startLocationTask() {
         notificationBody: "Recherche de toilettes à proximité...",
       },
     });
+    console.log("[LocationNotifications] task started ✅");
   } catch (err) {
     console.error("[useLocationNotifications] erreur:", err);
   }

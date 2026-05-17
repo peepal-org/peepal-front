@@ -1,8 +1,8 @@
+import type { Toilet } from "@/types/ui/Toilet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
-import type { Toilet } from "@/types/ui/Toilet";
 
 export const LOCATION_TASK_NAME = "background-location-task";
 export const TOILETS_CACHE_KEY = "TOILETS_CACHE_KEY";
@@ -29,6 +29,7 @@ function getDistanceInMeters(
 }
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
+  console.log("[LocationTask] triggered");
   if (error) {
     console.error("[LocationTask] erreur:", error.message);
     return;

@@ -28,13 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>peepalfront</string>
-          <string>com.peepal.front</string>
-        </array>
-      </dict>
-      <dict>
-        <key>CFBundleURLSchemes</key>
-        <array>
-          <string>exp+peepal-front</string>
+          <string>com.anonymous.peepalfront</string>
         </array>
       </dict>
     </array>
@@ -54,7 +48,7 @@
     <key>NSCameraUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your camera</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <string>Autoriser Peepal à accéder à votre position en arrière-plan pour vous notifier des toilettes à proximité.</string>
     <key>NSLocationAlwaysUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your location</string>
     <key>NSLocationWhenInUseUsageDescription</key>
@@ -71,8 +65,8 @@
     <true/>
     <key>UIBackgroundModes</key>
     <array>
-      <string>location</string>
       <string>fetch</string>
+      <string>location</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
