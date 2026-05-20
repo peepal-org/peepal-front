@@ -6,6 +6,7 @@ import { Shadows } from "@/constants/Shadows";
 import { fetchAdminOverview } from "@/functions/api/admin";
 import { fetchComments } from "@/functions/api/comments";
 import { fetchMyCommentReports } from "@/functions/api/commentReports";
+import { fetchGamificationStats } from "@/functions/api/gamification";
 import { fetchReports } from "@/functions/api/reports";
 import { fetchToilets } from "@/functions/api/toilet";
 import { User } from "@/types/ui/User";
@@ -67,6 +68,7 @@ export default function ProfileScreen() {
       queryClient.invalidateQueries({ queryKey: ["myReports"] });
       queryClient.invalidateQueries({ queryKey: ["myCommentReports"] });
       queryClient.invalidateQueries({ queryKey: ["adminOverview"] });
+      queryClient.invalidateQueries({ queryKey: ["gamificationStats"] });
     }, [loadProfile, queryClient]),
   );
 
@@ -115,10 +117,18 @@ export default function ProfileScreen() {
     enabled: !!userProfile && userProfile?.type === "admin",
   });
 
+  const { data: gamificationStats } = useQuery({
+    queryKey: ["gamificationStats", userProfile?.id],
+    queryFn: fetchGamificationStats,
+    enabled: !!userProfile,
+  });
 
   const myCommentsCount = myCommentsData.length;
   const myToiletsCount = myToiletsData.filter((toilet) => toilet.status).length;
   const myReportCount = myReportData.length + myCommentReportData.length;
+  const userPoints = gamificationStats?.points ?? userProfile?.points ?? 0;
+  const userLevel = gamificationStats?.level ?? userProfile?.level ?? 1;
+  const badgeCount = gamificationStats?.badges.length ?? 0;
 
   const allCommentsCount = adminOverview?.totals.comments ?? 0;
   const allToiletsCount = adminOverview?.totals.toilets ?? 0;
@@ -177,8 +187,15 @@ export default function ProfileScreen() {
       id: "badges",
       icon: "ribbon-outline" as keyof typeof Ionicons.glyphMap,
       title: "Badges",
-      subtitle: "Explorateur, Premier Pas ...",
+      subtitle: `${badgeCount} badge${badgeCount > 1 ? "s" : ""} obtenu${badgeCount > 1 ? "s" : ""}`,
       route: "/profile/badges",
+    },
+    {
+      id: "quests",
+      icon: "trophy-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Quêtes",
+      subtitle: "Quêtes journalières et hebdomadaires",
+      route: "/profile/quests",
     },
   ];
 
@@ -240,14 +257,14 @@ export default function ProfileScreen() {
             <View style={styles.levelContainer}>
               <Ionicons name="trophy-outline" size={20} color={theme.primary} />
               <Text style={[styles.levelPointsText, { color: theme.text }]}>
-                Niveau {userProfile.level}
+                Niveau {userLevel}
               </Text>
             </View>
 
             <View style={styles.pointsContainer}>
               <Ionicons name="star" size={20} color={theme.primary} />
               <Text style={[styles.levelPointsText, { color: theme.text }]}>
-                {userProfile.points} pts
+                {userPoints} pts
               </Text>
             </View>
           </View>
@@ -273,7 +290,7 @@ export default function ProfileScreen() {
           {[
             { number: myCommentsCount, label: "Commentaires" },
             { number: myReportCount.toString(), label: "Signalements" },
-            { number: 7, label: "Badges" },
+            { number: badgeCount, label: "Badges" },
           ].map((stat, index) => (
             <View key={index} style={styles.statBox}>
               <Text style={[styles.statNumber, { color: theme.primary }]}>
