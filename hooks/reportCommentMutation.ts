@@ -20,6 +20,8 @@ export const useCreateReportCommentMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["myCommentReports"] });
       queryClient.invalidateQueries({ queryKey: ["allCommentReports"] });
       queryClient.invalidateQueries({ queryKey: ["adminOverview"] });
+      queryClient.invalidateQueries({ queryKey: ["gamificationStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userBadges"] });
 
       toast.success("Rapport envoyé ✅ Merci pour ta contribution.");
       router.replace("/(tabs)/map");
