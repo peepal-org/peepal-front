@@ -300,14 +300,18 @@ export default function ToiletDetailsScreen() {
                         <Ionicons name="trash-outline" size={20} color="#ef4444" />
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity
-                       onPress={() => toiletViewModel.goToReportComment(Number(review.id))}
+                    {toiletViewModel.canReportComment(review.user.id) && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          toiletViewModel.goToReportComment(Number(review.id))
+                        }
                         style={styles.reportButton}
-                    >
-                      <Text style={styles.reportButtonText}>
-                        Signaler
-                      </Text>
-                    </TouchableOpacity>
+                      >
+                        <Text style={styles.reportButtonText}>
+                          Signaler
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               ))}

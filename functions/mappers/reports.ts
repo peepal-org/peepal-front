@@ -1,3 +1,4 @@
+import type { ApiCommentReport } from "@/types/api/ApiCommentReport";
 import type { ApiReport } from "@/types/api/ApiReport";
 import type { Report } from "@/types/ui/Report";
 
@@ -41,9 +42,29 @@ export function mapApiReport(apiReport: ApiReport): Report {
     userPhotoUrl: apiReport.user.photo_url,
     toiletId: apiReport.toilet.id,
     toiletName: apiReport.toilet.name,
+    toiletImage: null,
     type: apiReport.type,
     description: apiReport.description,
     createdAt: apiReport.createdAt,
     dateLabel: getRelativeTimeLabel(apiReport.createdAt),
+    targetType: "toilet",
+  };
+}
+
+export function mapApiCommentReport(apiReport: ApiCommentReport): Report {
+  return {
+    id: apiReport.id,
+    userId: apiReport.user.id,
+    userName: apiReport.user.name,
+    userPhotoUrl: apiReport.user.photo_url,
+    toiletId: apiReport.comment.toilet.id,
+    toiletName: apiReport.comment.toilet.name,
+    toiletImage: null,
+    commentId: apiReport.comment.id,
+    type: apiReport.type,
+    description: apiReport.description,
+    createdAt: apiReport.createdAt,
+    dateLabel: getRelativeTimeLabel(apiReport.createdAt),
+    targetType: "comment",
   };
 }

@@ -38,7 +38,7 @@ export function useToiletDetailViewModel() {
     loadProfile();
   }, []);
 
-  
+
 
 
   // Fetch toilet
@@ -80,6 +80,22 @@ export function useToiletDetailViewModel() {
   const isAdmin = userProfile?.type === "admin";
   const createdById = (apiToilet?.createdBy as { id: number } | null)?.id;
   const isCreator = userProfile?.id != null && userProfile.id === createdById;
+  const currentUserId = userProfile?.id != null ? String(userProfile.id) : null;
+
+  const showAdminAccessDenied = useCallback(() => {
+    Alert.alert(
+      "Accès refusé",
+      "Cette action est réservée aux administrateurs.",
+    );
+  }, []);
+
+  const canReportComment = useCallback(
+    (commentUserId?: string | number | null) => {
+      if (commentUserId == null || currentUserId == null) return true;
+      return String(commentUserId) !== currentUserId;
+    },
+    [currentUserId],
+  );
 
   // Reverse geocoding
   useEffect(() => {
@@ -142,7 +158,12 @@ export function useToiletDetailViewModel() {
 
  const handleUpdateStatus = useCallback(
   async (status: "accepted" | "rejected") => {
-    if (!isAdmin || !toilet) return;
+    if (!isAdmin) {
+      showAdminAccessDenied();
+      return;
+    }
+
+    if (!toilet) return;
 
     try {
 
@@ -156,7 +177,7 @@ export function useToiletDetailViewModel() {
       });
 
       await updateToilet(Number(toilet.id), { status });
-      
+
       await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
 
       Alert.alert(
@@ -171,10 +192,15 @@ export function useToiletDetailViewModel() {
       Alert.alert("Erreur", "Une erreur s'est produite");
     }
   },
-  [isAdmin, toilet, queryClient, toiletIdNum]
+  [isAdmin, toilet, queryClient, toiletIdNum, showAdminAccessDenied]
 );
 
   const handleAcceptToilet = useCallback(() => {
+    if (!isAdmin) {
+      showAdminAccessDenied();
+      return;
+    }
+
     Alert.alert(
       "Accepter les toilettes",
       "Voulez-vous vraiment accepter ces toilettes ?",
@@ -186,9 +212,14 @@ export function useToiletDetailViewModel() {
         },
       ]
     );
-  }, [handleUpdateStatus]);
+  }, [handleUpdateStatus, isAdmin, showAdminAccessDenied]);
 
   const handleRejectToilet = useCallback(() => {
+    if (!isAdmin) {
+      showAdminAccessDenied();
+      return;
+    }
+
     Alert.alert(
       "Rejeter les toilettes",
       "Voulez-vous vraiment rejeter ces toilettes ?",
@@ -201,10 +232,15 @@ export function useToiletDetailViewModel() {
         },
       ]
     );
-  }, [handleUpdateStatus]);
+  }, [handleUpdateStatus, isAdmin, showAdminAccessDenied]);
 
   const handleDeleteToilet = useCallback(() => {
-    if (!isAdmin || !toilet) return;
+    if (!isAdmin) {
+      showAdminAccessDenied();
+      return;
+    }
+
+    if (!toilet) return;
 
     Alert.alert(
       "Supprimer les toilettes",
@@ -230,7 +266,7 @@ export function useToiletDetailViewModel() {
         },
       ]
     );
-  }, [isAdmin, toilet, queryClient, router]);
+  }, [isAdmin, toilet, queryClient, router, showAdminAccessDenied]);
 
   const handleVote = useCallback(
     async (vote: "like" | "dislike") => {
@@ -253,7 +289,10 @@ export function useToiletDetailViewModel() {
 
   const handleDeleteComment = useCallback(
     (commentId: number) => {
-      if (!isAdmin) return;
+      if (!isAdmin) {
+        showAdminAccessDenied();
+        return;
+      }
 
       Alert.alert(
         "Supprimer le commentaire",
@@ -281,7 +320,7 @@ export function useToiletDetailViewModel() {
         ]
       );
     },
-    [isAdmin, queryClient, toiletIdNum]
+    [isAdmin, queryClient, toiletIdNum, showAdminAccessDenied]
   );
 
   return {
@@ -297,6 +336,8 @@ export function useToiletDetailViewModel() {
     isAdmin,
     isCreator,
     userVote,
+    currentUserId,
+    canReportComment,
     goBack,
     openInMaps,
     goToRate,

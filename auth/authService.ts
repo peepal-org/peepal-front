@@ -2,9 +2,32 @@ import { API_URL, ENV } from "@/config/env";
 import { User } from "@/types/ui/User";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const saveUserProfile = async (user: User) => {
+type UserApiShape = Partial<User> & {
+  photo_url?: string | null;
+  created_at?: string;
+};
+
+function normalizeUserProfile(user: UserApiShape): User {
+  const normalizedType = (user.type ?? user.role ?? "user") as User["role"];
+
+  return {
+    id: Number(user.id),
+    name: user.name ?? "",
+    email: user.email ?? "",
+    createdAt: user.createdAt ?? user.created_at ?? new Date().toISOString(),
+    role: normalizedType,
+    photoUrl: user.photoUrl ?? user.photo_url ?? null,
+    points: user.points ?? 0,
+    level: user.level ?? 1,
+    bio: user.bio ?? "",
+    type: user.type ?? normalizedType,
+  };
+}
+
+export const saveUserProfile = async (user: UserApiShape) => {
   try {
-    await AsyncStorage.setItem(ENV.USER_KEY, JSON.stringify(user));
+    const normalizedUser = normalizeUserProfile(user);
+    await AsyncStorage.setItem(ENV.USER_KEY, JSON.stringify(normalizedUser));
   } catch (err) {
     console.error("Erreur lors de la sauvegarde du profil :", err);
   }
@@ -13,22 +36,18 @@ export const saveUserProfile = async (user: User) => {
 export const getUserProfile = async (): Promise<User | null> => {
   try {
     const storedUser = await AsyncStorage.getItem(ENV.USER_KEY);
-    return storedUser ? JSON.parse(storedUser) : null;
+    return storedUser ? normalizeUserProfile(JSON.parse(storedUser)) : null;
   } catch (err) {
     console.error("Erreur lors du chargement du profil :", err);
     return null;
   }
 };
 
-export const login = async (
-  email: string, 
-  password: string, 
-  loginAsAdmin: boolean = false
-) => {
+export const login = async (email: string, password: string) => {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, loginAsAdmin }),
+    body: JSON.stringify({ email, password }),
   });
 
   if (!res.ok) {
@@ -42,7 +61,7 @@ export const login = async (
 
   const data = await res.json();
   const tokenToSave = data.access_token;
-  const userProfileData: User = data.user;
+  const userProfileData = normalizeUserProfile(data.user);
 
   if (!tokenToSave)
     throw new Error("Jeton manquant dans la réponse du serveur.");
@@ -51,7 +70,7 @@ export const login = async (
 
   await AsyncStorage.setItem(ENV.TOKEN_KEY, tokenToSave);
   await saveUserProfile(userProfileData);
-  return data;
+  return { ...data, user: userProfileData };
 };
 
 export const register = async (
@@ -76,7 +95,7 @@ export const register = async (
 
   const data = await res.json();
   const tokenToSave = data.access_token;
-  const userProfileData: User = data.user;
+  const userProfileData = normalizeUserProfile(data.user);
 
   if (!tokenToSave) throw new Error("Jeton manquant après l'inscription.");
   if (!userProfileData)
@@ -84,7 +103,7 @@ export const register = async (
 
   await AsyncStorage.setItem(ENV.TOKEN_KEY, tokenToSave);
   await saveUserProfile(userProfileData);
-  return data;
+  return { ...data, user: userProfileData };
 };
 
 export const logout = async () => {
@@ -120,7 +139,7 @@ export const fetchUserProfile = async (): Promise<User> => {
     );
   }
 
-  const userProfile = await res.json();
+  const userProfile = normalizeUserProfile(await res.json());
   await saveUserProfile(userProfile);
   return userProfile;
 };
@@ -153,7 +172,7 @@ export const updateProfile = async (updates: {
     );
   }
 
-  const updatedUser = await res.json();
+  const updatedUser = normalizeUserProfile(await res.json());
   await saveUserProfile(updatedUser);
   return updatedUser;
 };
