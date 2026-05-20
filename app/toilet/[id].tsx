@@ -154,6 +154,50 @@ export default function ToiletDetailsScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {!toiletViewModel.isAdmin && !toiletViewModel.isCreator && toiletViewModel.toilet.statut === "waiting" && (
+          <View style={styles.voteContainer}>
+            <Text style={[styles.voteTitle, { color: theme.text }]}>
+              Cette toilette est en attente de validation
+            </Text>
+            <Text style={[styles.voteSubtitle, { color: theme.textMuted }]}>
+              Donnez votre avis pour l'aider à être validée (3 votes requis)
+            </Text>
+            <View style={styles.voteButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.voteButton,
+                  { borderColor: "#22c55e" },
+                  toiletViewModel.userVote === "like" && { backgroundColor: "#22c55e" },
+                ]}
+                onPress={() => toiletViewModel.handleVote("like")}
+              >
+                <Text style={[
+                  styles.voteButtonText,
+                  { color: toiletViewModel.userVote === "like" ? "#fff" : "#22c55e" },
+                ]}>
+                  👍 {toiletViewModel.toilet.likes ?? 0}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.voteButton,
+                  { borderColor: "#ef4444" },
+                  toiletViewModel.userVote === "dislike" && { backgroundColor: "#ef4444" },
+                ]}
+                onPress={() => toiletViewModel.handleVote("dislike")}
+              >
+                <Text style={[
+                  styles.voteButtonText,
+                  { color: toiletViewModel.userVote === "dislike" ? "#fff" : "#ef4444" },
+                ]}>
+                  👎 {toiletViewModel.toilet.dislikes ?? 0}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
         
         <View style={styles.section}>
           <View style={styles.ratingsHeaderRow}>
@@ -490,11 +534,42 @@ const styles = StyleSheet.create({
   paddingHorizontal: 10,
   paddingVertical: 5,
   borderRadius: 6,
-  backgroundColor: "#FEE2E2", 
+  backgroundColor: "#FEE2E2",
   },
   reportButtonText: {
-    color: "#DC2626", 
+    color: "#DC2626",
     fontSize: 12,
     fontWeight: "500",
-  }
+  },
+  voteContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  voteTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  voteSubtitle: {
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  voteButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  voteButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: "center",
+  },
+  voteButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
 });

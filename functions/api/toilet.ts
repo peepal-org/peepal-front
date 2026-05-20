@@ -25,3 +25,10 @@ export function deleteToilet(id: number) {
     method: "DELETE",
   });
 }
+
+export function voteToilet(id: number, vote: "like" | "dislike", userId: number) {
+  return apiFetch<ApiToilet>(`/toilets/${id}/vote`, {
+    method: "POST",
+    body: JSON.stringify({ vote, userId }),
+  });
+}

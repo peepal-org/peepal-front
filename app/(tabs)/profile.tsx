@@ -62,7 +62,7 @@ export default function ProfileScreen() {
       loadProfile();
       queryClient.invalidateQueries({ queryKey: ["userComments"] });
       queryClient.invalidateQueries({ queryKey: ["userToilets"] });
-    
+
       queryClient.invalidateQueries({ queryKey: ["myComments"] });
       queryClient.invalidateQueries({ queryKey: ["myToilets"] });
       queryClient.invalidateQueries({ queryKey: ["allComments"] });
@@ -125,7 +125,7 @@ export default function ProfileScreen() {
   const myCommentsCount = myCommentsData.length;
   const myToiletsCount = myToiletsData.filter(toilet => toilet.status).length;
   const myReportCount = myReportData.length;
-  
+
   const allCommentsCount = allCommentsData.length;
   const allToiletsCount = allToiletsData.filter(toilet => toilet.status).length;
   const allReportCount = allReportData.length;
@@ -152,6 +152,13 @@ export default function ProfileScreen() {
       subtitle: myReportCount.toString(),
       route: "/profile/contributions?tab=signalements&scope=personal",
     },
+    ...(userProfile?.type !== "admin" ? [{
+      id: "a-valider",
+      icon: "checkmark-circle-outline" as keyof typeof Ionicons.glyphMap,
+      title: "À valider",
+      subtitle: "Toilettes à confirmer",
+      route: "/profile/contributions?tab=a_valider&scope=personal",
+    }] : []),
   ];
 
   const allContributionItems = [
@@ -398,8 +405,8 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1 
+  container: {
+    flex: 1
   },
   headerBar: {
     flexDirection: "row",
@@ -464,9 +471,9 @@ const styles = StyleSheet.create({
     fontSize: scale(14),
     fontWeight: "500",
   },
-  subtitle: { 
+  subtitle: {
     fontSize: scale(14),
-    marginBottom: verticalScale(5) 
+    marginBottom: verticalScale(5)
   },
   bio: {
     fontSize: scale(14),
@@ -489,9 +496,9 @@ const styles = StyleSheet.create({
     fontSize: scale(14),
     textAlign: "center",
   },
-  section: { 
+  section: {
     marginTop: verticalScale(30),
-    paddingHorizontal: scale(20) 
+    paddingHorizontal: scale(20)
   },
   sectionTitle: {
     fontSize: scale(18),
@@ -542,9 +549,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...Shadows.dp2,
   },
-  buttonText: { 
-    color: "white", 
-    fontSize: scale(16), 
-    fontWeight: "600" 
+  buttonText: {
+    color: "white",
+    fontSize: scale(16),
+    fontWeight: "600"
   },
 });

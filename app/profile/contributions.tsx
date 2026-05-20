@@ -50,6 +50,7 @@ export default function ContributionsScreen() {
       queryClient.invalidateQueries({ queryKey: ["allComments"] });
       queryClient.invalidateQueries({ queryKey: ["allToilets"] });
       queryClient.invalidateQueries({ queryKey: ["allReports"] });
+      queryClient.invalidateQueries({ queryKey: ["pendingToilets"] });
     }, [queryClient])
   );
 
@@ -149,20 +150,34 @@ export default function ContributionsScreen() {
     signalements: userReports,
   };
 
+  const { data: pendingToilets = [] } = useQuery({
+    queryKey: ["pendingToilets", userProfile?.id],
+    queryFn: fetchToilets,
+    select: (apiToilets) =>
+      apiToilets
+        .filter((t) => t.status === "waiting" && t.createdBy?.id !== userProfile?.id)
+        .map(mapApiToilet),
+    enabled: !!userProfile && userProfile.type !== "admin",
+    staleTime: 0,
+    refetchOnMount: true,
+  });
+
   const tabs = [
     { id: "ajoute" as const, label: "Ajoutés" },
     { id: "commentaires" as const, label: "Commentaires" },
     { id: "signalements" as const, label: "Signalements" },
+    ...(userProfile?.type !== "admin" ? [{ id: "a_valider" as const, label: `À valider${pendingToilets.length > 0 ? ` (${pendingToilets.length})` : ""}` }] : []),
   ];
 
-  const [selected, setSelected] = useState<"ajoute" | "commentaires" | "signalements">("ajoute");
+  const [selected, setSelected] = useState<"ajoute" | "commentaires" | "signalements" | "a_valider">("ajoute");
 
   useEffect(() => {
     if (
       params.tab &&
       (params.tab === "ajoute" ||
         params.tab === "commentaires" ||
-        params.tab === "signalements")
+        params.tab === "signalements" ||
+        params.tab === "a_valider")
     ) {
       setSelected(params.tab as Tab);
     }
@@ -312,10 +327,10 @@ export default function ContributionsScreen() {
         </View>
 
         <View style={styles.reportTypeContainer}>
-          <Ionicons 
-            name={getReportTypeIcon(report.type)} 
-            size={16} 
-            color="#666" 
+          <Ionicons
+            name={getReportTypeIcon(report.type)}
+            size={16}
+            color="#666"
           />
           <Text style={styles.reportTypeText}>
             {getReportTypeLabel(report.type)}
@@ -342,7 +357,7 @@ export default function ContributionsScreen() {
   // Titre dynamique selon le scope
   const pageTitle = scope === "all" ? "Contributions (tous les utilisateurs)" : "Mes contributions";
 
-  
+
   // Composants pour les listes vides
   const EmptyToiletsComponent = () => (
     <View style={styles.emptyContainer}>
@@ -351,7 +366,7 @@ export default function ContributionsScreen() {
         {scope === "all" ? "Aucune toilette ajoutée" : "Vous n'avez pas encore ajouté de toilettes"}
       </Text>
       <Text style={styles.emptyDescription}>
-        {scope === "all" 
+        {scope === "all"
           ? "Les toilettes ajoutées par les utilisateurs apparaîtront ici"
           : "Commencez par ajouter votre première toilette sur la carte"}
       </Text>
@@ -406,7 +421,7 @@ export default function ContributionsScreen() {
           )}
           keyExtractor={(item) => item.id}
           horizontal
-          scrollEnabled={false}
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabs}
           ItemSeparatorComponent={() => <View style={{ width: 20 }} />}
         />
@@ -428,6 +443,49 @@ export default function ContributionsScreen() {
             keyExtractor={(item) => `commentaires-${item.id}`}
             renderItem={({ item }) => renderCommentItem(item)}
             ListEmptyComponent={EmptyCommentsComponent}
+          />
+        ) : selected === "a_valider" ? (
+          <FlatList
+            data={pendingToilets}
+            keyExtractor={(item) => `pending-${item.id}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.item}
+                onPress={() => router.push(`/toilet/${item.id}`)}
+              >
+                <Image
+                  source={{ uri: item.image || DEFAULT_TOILET_IMAGE }}
+                  style={styles.image}
+                />
+                <View style={styles.itemContent}>
+                  <View style={styles.toiletHeader}>
+                    <Text style={styles.title}>{item.name}</Text>
+                    {item.accessible && <Text style={styles.accessibleIcon}>♿</Text>}
+                  </View>
+                  <View style={styles.toiletMeta}>
+                    <Text style={styles.toiletMetaText}>
+                      👍 {item.likes ?? 0}
+                    </Text>
+                    <Text style={styles.separator}>·</Text>
+                    <Text style={styles.toiletMetaText}>
+                      👎 {item.dislikes ?? 0}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[styles.bufferBase, styles.bufferWaiting]}>
+                  <Text style={[styles.bufferText, styles.bufferTextWaiting]}>En attente</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="checkmark-circle-outline" size={64} color="#ccc" />
+                <Text style={styles.emptyTitle}>Aucune toilette à valider</Text>
+                <Text style={styles.emptyDescription}>
+                  Toutes les suggestions ont déjà été traitées.
+                </Text>
+              </View>
+            )}
           />
         ) : (
           <FlatList
@@ -462,23 +520,23 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  trashButton: { 
-    marginTop: 2, 
-    marginBottom: 6 
+  trashButton: {
+    marginTop: 2,
+    marginBottom: 6
   },
-  trashIcon: { 
-    fontSize: 16 
+  trashIcon: {
+    fontSize: 16
   },
-  trashContainer: { 
-    position: "absolute", 
-    right: 0, 
-    top: 24 
+  trashContainer: {
+    position: "absolute",
+    right: 0,
+    top: 24
   },
-  sectionHeader: { 
-    fontSize: 18, 
-    fontWeight: "700", 
-    marginVertical: 10, 
-    color: "#333" 
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginVertical: 10,
+    color: "#333"
   },
   item: {
     flexDirection: "row",

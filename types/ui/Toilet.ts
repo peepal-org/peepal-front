@@ -14,6 +14,8 @@ export type Toilet = {
   image?: string;
   isOpen?: boolean;
   statut: Statut;
+  likes?: number;
+  dislikes?: number;
 };
 
 export type RestroomType =

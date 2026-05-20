@@ -86,5 +86,7 @@ export function mapApiToilet(api: ApiToilet): Toilet {
     image: undefined,
     isOpen: computeIsOpen(api.opening_hours),
     statut: mapApiStatus(api.status) ?? "waiting",
+    likes: api.likes ?? 0,
+    dislikes: api.dislikes ?? 0,
   };
 }
