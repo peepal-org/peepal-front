@@ -37,7 +37,7 @@ export function fetchAdminReports() {
 
 export function updateAdminUserType(
   id: number,
-  type: 'user' | 'admin',
+  type: 'user' | 'admin' | 'superadmin',
 ) {
   return apiFetch<ApiUser>(`/admin/users/${id}/type`, {
     method: 'PATCH',

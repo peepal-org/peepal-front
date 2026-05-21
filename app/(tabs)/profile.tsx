@@ -109,10 +109,14 @@ export default function ProfileScreen() {
     enabled: !!userProfile,
   });
 
+  const isAdminUser =
+    userProfile?.type === "admin" ||
+    userProfile?.type === "superadmin";
+
   const { data: adminOverview } = useQuery({
     queryKey: ["adminOverview"],
     queryFn: fetchAdminOverview,
-    enabled: !!userProfile && userProfile?.type === "admin",
+    enabled: !!userProfile && isAdminUser,
   });
 
 
@@ -321,7 +325,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Contributions globales - uniquement pour les admins */}
-        {userProfile.type === "admin" && (
+        {isAdminUser && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
               Contributions (tous les utilisateurs)

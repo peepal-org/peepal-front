@@ -66,7 +66,9 @@ export default function ContributionsScreen() {
 
   // Déterminer le scope (personal ou all) depuis les paramètres
   const scope = (params.scope as string) || "personal";
-  const isAdminUser = userProfile?.type === "admin";
+  const isAdminUser =
+    userProfile?.type === "admin" ||
+    userProfile?.type === "superadmin";
 
   // Contributions personnelles
   const { data: myComments = [] } = useQuery({
@@ -129,7 +131,7 @@ export default function ContributionsScreen() {
     select: (apiComments) => {
       return apiComments.map(mapApiComment);
     },
-    enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
+    enabled: !!userProfile && isAdminUser && scope === "all",
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -143,7 +145,7 @@ export default function ContributionsScreen() {
         .map(mapApiToilet)
         .filter((toilet) => toilet.type);
     },
-    enabled: !!userProfile && userProfile?.type === "admin" && scope === "all",
+    enabled: !!userProfile && isAdminUser && scope === "all",
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,

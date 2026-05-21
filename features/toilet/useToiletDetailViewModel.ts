@@ -77,7 +77,7 @@ export function useToiletDetailViewModel() {
     : "Non accessible";
 
   // 🎯 Admin check
-  const isAdmin = userProfile?.type === "admin";
+  const isAdmin = userProfile?.type === "admin" || userProfile?.type === "superadmin";
   const currentUserId = userProfile?.id != null ? String(userProfile.id) : null;
 
   const showAdminAccessDenied = useCallback(() => {
