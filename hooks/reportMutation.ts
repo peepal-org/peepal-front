@@ -17,6 +17,8 @@ export const useCreateReportMutation = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reports"] });
+      queryClient.invalidateQueries({ queryKey: ["gamificationStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userBadges"] });
 
       toast.success("Rapport envoyé ✅ Merci pour ta contribution.");
       router.replace("/(tabs)/map");

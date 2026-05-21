@@ -43,6 +43,8 @@ export function useAddRestroomViewModel() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["toilets"] });
+      queryClient.invalidateQueries({ queryKey: ["gamificationStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userBadges"] });
       toast.success("Toilette ajoutée 🎉 Merci pour ta contribution.");
       router.replace("/(tabs)/map");
     },
