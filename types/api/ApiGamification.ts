@@ -56,9 +56,30 @@ export type ApiQuestWithProgress = {
 
 export type ApiGamificationStats = {
   level: number;
+  levelLabel?: string;
   points: number;
   trustWeight: number;
   badges: ApiBadge[];
   dailyQuests: ApiQuestWithProgress[];
   weeklyQuests: ApiQuestWithProgress[];
+};
+
+export type ApiThemeType = "basic" | "premium" | "animated" | "exclusive";
+
+export type ApiTheme = {
+  id: number;
+  name: string;
+  description?: string | null;
+  type: ApiThemeType;
+  minLevel: number;
+  colorPrimary?: string | null;
+  colorSecondary?: string | null;
+  accentColor?: string | null;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ApiThemeWithUnlock = ApiTheme & {
+  unlocked: boolean;
 };

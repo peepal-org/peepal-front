@@ -132,6 +132,7 @@ export default function ProfileScreen() {
   const myReportCount = myReportData.length + myCommentReportData.length;
   const userPoints = gamificationStats?.points ?? userProfile?.points ?? 0;
   const userLevel = gamificationStats?.level ?? userProfile?.level ?? 1;
+  const userLevelLabel = gamificationStats?.levelLabel ?? "";
   const badgeCount = gamificationStats?.badges.length ?? 0;
 
   const allCommentsCount = adminOverview?.totals.comments ?? 0;
@@ -209,6 +210,13 @@ export default function ProfileScreen() {
       subtitle: "Quêtes journalières et hebdomadaires",
       route: "/profile/quests",
     },
+    {
+      id: "themes",
+      icon: "color-palette-outline" as keyof typeof Ionicons.glyphMap,
+      title: "Thèmes",
+      subtitle: "Personnalise l'apparence",
+      route: "/profile/themes",
+    },
   ];
 
   const handleLogout = async () => {
@@ -270,6 +278,7 @@ export default function ProfileScreen() {
               <Ionicons name="trophy-outline" size={20} color={theme.primary} />
               <Text style={[styles.levelPointsText, { color: theme.text }]}>
                 Niveau {userLevel}
+                {userLevelLabel ? ` — ${userLevelLabel}` : ""}
               </Text>
             </View>
 
@@ -473,20 +482,21 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   levelPointsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: "column",
     alignItems: "center",
-    width: "50%",
     marginTop: verticalScale(5),
+    gap: verticalScale(4),
   },
   levelContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: scale(6),
   },
   pointsContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: scale(6),
   },
   levelPointsText: {
