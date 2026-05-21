@@ -124,7 +124,6 @@ export default function Login() {
               <Text style={styles.loginButtonText}>Se connecter</Text>
             )}
           </TouchableOpacity>
-
         </View>
 
         {/* Footer */}

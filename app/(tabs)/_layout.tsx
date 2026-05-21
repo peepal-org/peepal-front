@@ -1,10 +1,13 @@
 import { Colors } from "@/constants/Colors";
+import { useLocationNotifications } from "@/hooks/useLocationNotifications";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
 import { useColorScheme } from "react-native";
 
 export default function TabLayout() {
+  useLocationNotifications(true);
+
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
 

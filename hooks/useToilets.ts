@@ -4,6 +4,8 @@ import type { ApiToilet } from "@/types/api/ApiToilet";
 import type { Toilet } from "@/types/ui/Toilet";
 import { getErrorMessage } from "@/utils/errorHandler";
 import { filterToilets } from "@/utils/filterToilets";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { TOILETS_CACHE_KEY } from "@/tasks/locationTask";
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
@@ -38,6 +40,13 @@ export function useToilets() {
   const apiError = error
     ? getErrorMessage(error, "Erreur de chargement des toilettes.")
     : null;
+
+  useEffect(() => {
+    if (toilets.length === 0) return;
+    AsyncStorage.setItem(TOILETS_CACHE_KEY, JSON.stringify(toilets)).catch(
+      (err) => console.error("[useToilets] cache error:", err),
+    );
+  }, [toilets]);
 
   // Location permission
   useEffect(() => {

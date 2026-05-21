@@ -50,15 +50,6 @@ export const login = async (email: string, password: string) => {
     body: JSON.stringify({ email, password }),
   });
 
-  if (!res.ok) {
-    const errorData = await res
-      .json()
-      .catch(() => ({ message: `Erreur HTTP ${res.status}` }));
-    throw new Error(
-      errorData.message || `Échec de la connexion (${res.status})`,
-    );
-  }
-
   const data = await res.json();
   const tokenToSave = data.access_token;
   const userProfileData = normalizeUserProfile(data.user);
