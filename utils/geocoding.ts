@@ -21,7 +21,7 @@ export async function getAddressFromCoords(
       if (line2) return line2;
     }
   } catch (e) {
-    console.log("Reverse geocoding error:", e);
+    console.error("Reverse geocoding error:", e);
   }
 
   return "Adresse inconnue";
