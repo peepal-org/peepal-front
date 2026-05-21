@@ -2,7 +2,7 @@ import { Colors } from "@/constants/Colors";
 import { useToilets } from "@/hooks/useToilets";
 import { getErrorMessage } from "@/utils/errorHandler";
 import * as Location from "expo-location";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useColorScheme } from "react-native";
 import MapView, { Region } from "react-native-maps";
@@ -22,6 +22,12 @@ export function useMapScreenViewModel() {
 
   const [showNearbyList, setShowNearbyList] = useState(true);
   const mapRef = useRef<MapView | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      toilets.refetchToilets();
+    }, [toilets.refetchToilets]),
+  );
 
   // Permission request + position retrieval
   useEffect(() => {
