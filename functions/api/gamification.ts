@@ -3,6 +3,7 @@ import type {
   ApiBadge,
   ApiGamificationStats,
   ApiQuest,
+  ApiThemeWithUnlock,
   ApiUserQuestProgress,
 } from "@/types/api/ApiGamification";
 
@@ -30,4 +31,12 @@ export function updateQuestProgress(questId: number, progress: number) {
       body: JSON.stringify({ progress }),
     },
   );
+}
+
+export function fetchAllThemes() {
+  return apiFetch<ApiThemeWithUnlock[]>("/gamification/themes");
+}
+
+export function fetchMyThemes() {
+  return apiFetch<ApiThemeWithUnlock[]>("/gamification/themes/mine");
 }
