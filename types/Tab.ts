@@ -1,1 +1,1 @@
-export type Tab = "ajoute" | "commentaires" | "signalements";
+export type Tab = "ajoute" | "commentaires" | "signalements" | "a_valider";

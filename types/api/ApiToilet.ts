@@ -16,6 +16,8 @@ export type ApiToilet = {
   opening_hours: string;
   createdAt: string;
   status?: Statut;
+  likes?: number;
+  dislikes?: number;
   createdBy?: ApiUser | { id: number } | null;
 };
 

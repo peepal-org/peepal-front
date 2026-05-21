@@ -1,6 +1,6 @@
 import { getUserProfile } from "@/auth/authService";
 import { deleteComment, fetchComments } from "@/functions/api/comments";
-import { deleteToilet, fetchToiletById, updateToilet } from "@/functions/api/toilet";
+import { deleteToilet, fetchToiletById, updateToilet, voteToilet } from "@/functions/api/toilet";
 import { mapApiComment } from "@/functions/mappers/comments";
 import { mapApiToilet } from "@/functions/mappers/toilet";
 import { ApiUser } from "@/types/api/ApiUser";
@@ -19,6 +19,7 @@ export function useToiletDetailViewModel() {
   const queryClient = useQueryClient();
   const [address, setAddress] = useState("Chargement de l'adresse…");
   const [userProfile, setUserProfile] = useState<ApiUser | null>(null);
+  const [userVote, setUserVote] = useState<"like" | "dislike" | null>(null);
 
   const toiletIdNum = Number(id);
 
@@ -37,7 +38,7 @@ export function useToiletDetailViewModel() {
     loadProfile();
   }, []);
 
-  
+
 
 
   // Fetch toilet
@@ -76,8 +77,9 @@ export function useToiletDetailViewModel() {
     ? "Accessible UFR"
     : "Non accessible";
 
-  // 🎯 Admin check
   const isAdmin = userProfile?.type === "admin";
+  const createdById = (apiToilet?.createdBy as { id: number } | null)?.id;
+  const isCreator = userProfile?.id != null && userProfile.id === createdById;
   const currentUserId = userProfile?.id != null ? String(userProfile.id) : null;
 
   const showAdminAccessDenied = useCallback(() => {
@@ -175,7 +177,7 @@ export function useToiletDetailViewModel() {
       });
 
       await updateToilet(Number(toilet.id), { status });
-      
+
       await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
 
       Alert.alert(
@@ -266,6 +268,27 @@ export function useToiletDetailViewModel() {
     );
   }, [isAdmin, toilet, queryClient, router, showAdminAccessDenied]);
 
+  const handleVote = useCallback(
+    async (vote: "like" | "dislike") => {
+      if (!userProfile || !toilet) return;
+
+      try {
+        const updated = await voteToilet(Number(toilet.id), vote, userProfile.id);
+        setUserVote(vote);
+        queryClient.setQueryData(["toilets", toiletIdNum], (oldData: any) => {
+          if (!oldData) return oldData;
+          return { ...oldData, likes: updated.likes, dislikes: updated.dislikes, status: updated.status };
+        });
+        await queryClient.invalidateQueries({ queryKey: ["toilets", toiletIdNum] });
+        queryClient.invalidateQueries({ queryKey: ["gamificationStats"] });
+        queryClient.invalidateQueries({ queryKey: ["userBadges"] });
+      } catch {
+        Alert.alert("Erreur", "Une erreur s'est produite");
+      }
+    },
+    [userProfile, toilet, queryClient, toiletIdNum]
+  );
+
   const handleDeleteComment = useCallback(
     (commentId: number) => {
       if (!isAdmin) {
@@ -313,6 +336,8 @@ export function useToiletDetailViewModel() {
     hoursLabel,
     accessibilityLabel,
     isAdmin,
+    isCreator,
+    userVote,
     currentUserId,
     canReportComment,
     goBack,
@@ -320,10 +345,11 @@ export function useToiletDetailViewModel() {
     goToRate,
     goToReport,
     goToReportComment,
-    handleAcceptToilet, 
-    handleRejectToilet, 
-    handleDeleteToilet, 
-    handleDeleteComment, 
+    handleAcceptToilet,
+    handleRejectToilet,
+    handleDeleteToilet,
+    handleDeleteComment,
+    handleVote,
   };
 }
 
