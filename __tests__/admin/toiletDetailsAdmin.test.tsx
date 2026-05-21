@@ -55,7 +55,7 @@ import { Alert } from "react-native";
 import { act, render, renderHook, waitFor } from "@testing-library/react-native";
 import { getUserProfile } from "@/auth/authService";
 import { deleteComment } from "@/functions/api/comments";
-import { updateToilet } from "@/functions/api/toilet";
+import { deleteToilet, updateToilet } from "@/functions/api/toilet";
 import { getAddressFromCoords } from "@/utils/geocoding";
 import ToiletDetailsScreen from "@/app/toilet/[id]";
 import { useToiletDetailViewModel } from "@/features/toilet/useToiletDetailViewModel";
@@ -192,6 +192,97 @@ describe("useToiletDetailViewModel admin behavior", () => {
       queryKey: ["comments", 10],
     });
   });
+
+  //Start of View Model tests
+
+  it("rejects a waiting toilet after the admin confirmation", async () => {
+    (updateToilet as jest.Mock).mockResolvedValue({
+      id: 10,
+      status: "rejected",
+    });
+
+    const { result } = renderHook(() => useToiletDetailViewModel());
+
+    await waitFor(() => {
+      expect(result.current.isAdmin).toBe(true);
+    });
+
+    act(() => {
+      result.current.handleRejectToilet();
+    });
+
+    const confirmButtons = alertSpy.mock.calls[0]?.[2] as
+      | Array<{ onPress?: () => void | Promise<void> }>
+      | undefined;
+
+    await act(async () => {
+      await confirmButtons?.[1]?.onPress?.();
+    });
+
+    expect(updateToilet).toHaveBeenCalledWith(10, { status: "rejected" });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["toilets", 10],
+    });
+    expect(alertSpy.mock.calls[1]?.[0]).toBe("Succès");
+  });
+
+  it("deletes a toilet after admin confirmation", async () => {
+    (deleteToilet as jest.Mock).mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() => useToiletDetailViewModel());
+
+    await waitFor(() => {
+      expect(result.current.isAdmin).toBe(true);
+    });
+
+    act(() => {
+      result.current.handleDeleteToilet();
+    });
+
+    const confirmButtons = alertSpy.mock.calls[0]?.[2] as
+      | Array<{ onPress?: () => void | Promise<void> }>
+      | undefined;
+
+    await act(async () => {
+      await confirmButtons?.[1]?.onPress?.();
+    });
+
+    expect(deleteToilet).toHaveBeenCalledWith(10);
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["toilets"],
+    });
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("shows an error alert when toilet deletion fails", async () => {
+    (deleteToilet as jest.Mock).mockRejectedValue(new Error("Failure"));
+
+    const { result } = renderHook(() => useToiletDetailViewModel());
+
+    await waitFor(() => {
+      expect(result.current.isAdmin).toBe(true);
+    });
+
+    act(() => {
+      result.current.handleDeleteToilet();
+    });
+
+    const confirmButtons = alertSpy.mock.calls[0]?.[2] as
+      | Array<{ onPress?: () => void | Promise<void> }>
+      | undefined;
+
+    await act(async () => {
+      await confirmButtons?.[1]?.onPress?.();
+    });
+
+    expect(deleteToilet).toHaveBeenCalledWith(10);
+    expect(alertSpy.mock.calls[1]?.[0]).toBe("Erreur");
+    expect(alertSpy.mock.calls[1]?.[1]).toBe(
+      "Une erreur s'est produite lors de la suppression",
+    );
+  });
+
+  //End of View Model tests
 
   it("blocks moderation actions for a regular user", async () => {
     (getUserProfile as jest.Mock).mockResolvedValueOnce({
